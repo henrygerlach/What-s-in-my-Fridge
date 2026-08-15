@@ -4,6 +4,54 @@ Web-App, um auf einen Blick zu sehen, was an Lebensmitteln im Haus ist, Rezepte
 mit dem Vorrat abzugleichen und sich per LLM Rezeptvorschläge aus vorhandenen
 Zutaten geben zu lassen.
 
+## So funktioniert's
+
+### Inventar
+
+Alle Lebensmittel nach Kühlschrank, Vorrat und Gefrierfach, mit Suche und
+Kategorien. Oben ein Vorschlag, was sich mit dem aktuellen Vorrat zur
+gerade passenden Tageszeit kochen lässt.
+
+![Inventar](docs/screenshots/inventory.gif)
+
+### Artikel hinzufügen
+
+Manuell eintragen — Kategorie und Ablageort werden beim Tippen per LLM
+vorgeschlagen. Alternativ per Barcode-Scan, Kassenbon-Foto oder Foto vom
+Kühlschrank/Vorrat (jeweils per LLM ausgelesen).
+
+![Artikel hinzufügen](docs/screenshots/add-item.gif)
+
+### Rezepte
+
+Rezeptliste mit Tag-Filtern und einer Ampel, wie viele Zutaten gerade
+vorhanden sind. Beim Anpassen der Portionenzahl werden Mengen und
+Zubereitungsschritte live umgerechnet.
+
+![Rezepte](docs/screenshots/recipes.gif)
+
+### KI-Vorschlag
+
+Freitext eingeben ("proteinreiches Frühstück", "was mit Kichererbsen") und
+das LLM schlägt passende Rezepte aus dem eigenen Vorrat vor — direkt als
+Rezept speicherbar.
+
+![KI-Vorschlag](docs/screenshots/suggest-recipe.gif)
+
+### Wochenplan
+
+Rezepte auf die nächsten Tage verteilen, Portionen anpassen und fehlende
+Zutaten für die ganze Woche auf einen Klick zur Einkaufsliste hinzufügen.
+
+![Wochenplan](docs/screenshots/meal-plan.gif)
+
+### Einkaufsliste
+
+Gekaufte Artikel wandern mit einem Klick direkt ins Inventar — inklusive
+automatischem Vorschlag für Ablageort und Kategorie.
+
+![Einkaufsliste](docs/screenshots/shopping-list.gif)
+
 ## Tech-Stack
 
 - React + TypeScript + Vite
