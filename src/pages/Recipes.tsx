@@ -35,6 +35,12 @@ export default function Recipes() {
   useClickOutside(rowMenuRef, openRowMenuId !== null, () => setOpenRowMenuId(null))
 
   const allTags = [...new Set(recipes.flatMap((recipe) => recipe.tags ?? []))].sort()
+  const tagGroups = TAG_GROUPS.map((group) => ({
+    label: group.label,
+    tags: group.options.filter((tag) => allTags.includes(tag)),
+  })).filter((group) => group.tags.length > 0)
+  const otherTags = allTags.filter((tag) => !TAG_GROUPS.some((group) => group.options.includes(tag)))
+  if (otherTags.length > 0) tagGroups.push({ label: 'Sonstiges', tags: otherTags })
 
   const searchTerm = search.trim().toLowerCase()
   const visibleRecipes = recipes.filter(
@@ -183,19 +189,26 @@ export default function Recipes() {
         className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
       />
 
-      {allTags.length > 0 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto">
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => toggleTag(tag)}
-              className={`whitespace-nowrap rounded-full px-3 py-1 text-sm ${
-                selectedTags.includes(tag) ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {tag}
-            </button>
+      {tagGroups.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          {tagGroups.map((group) => (
+            <div key={group.label}>
+              <p className="text-xs text-gray-400">{group.label}</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {group.tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`whitespace-nowrap rounded-full px-3 py-1 text-sm ${
+                      selectedTags.includes(tag) ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

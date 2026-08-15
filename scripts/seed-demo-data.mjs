@@ -301,8 +301,6 @@ const shoppingListItems = [
   { name: 'Limonade', quantity: 2, unit: 'Stück', category: 'Getränke' },
   { name: 'Zitronen', quantity: 4, unit: 'Stück', category: 'Obst & Gemüse' },
   { name: 'Zwiebeln', quantity: 1, unit: 'Bund', category: 'Obst & Gemüse' },
-  { name: 'Toilettenpapier', quantity: 1, unit: 'Packung', category: 'Sonstiges' },
-  { name: 'Zahnpasta', quantity: null, unit: null, category: null },
 ]
 
 const stapleItems = ['Reis', 'Nudeln', 'Olivenöl', 'Eier', 'Milch', 'Salz', 'Zwiebeln']
