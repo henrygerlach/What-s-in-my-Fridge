@@ -7,14 +7,16 @@ import { classifyItem } from '../lib/classify'
 import { useToast } from '../lib/ToastContext'
 import { useRealtimeRefresh } from '../lib/useRealtimeRefresh'
 import { groupByCategory } from '../lib/groupByCategory'
-import { UNIT_OPTIONS, CATEGORY_OPTIONS, CATEGORY_ICONS, UNCATEGORIZED_ICON } from '../lib/constants'
+import {
+  UNIT_OPTIONS,
+  CATEGORY_OPTIONS,
+  CATEGORY_ICONS,
+  UNCATEGORIZED_ICON,
+  LOCATION_OPTIONS,
+  LOCATION_DOT_CLASS,
+} from '../lib/constants'
+import PageHeader from '../components/PageHeader'
 import type { Location } from '../types'
-
-const locationOptions: Array<{ value: Location; label: string }> = [
-  { value: 'fridge', label: 'Kühlschrank' },
-  { value: 'pantry', label: 'Vorrat' },
-  { value: 'freezer', label: 'Gefrierfach' },
-]
 
 export default function ShoppingList() {
   const [items, setItems] = useState<ShoppingListItem[]>([])
@@ -161,54 +163,53 @@ export default function ShoppingList() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Einkaufsliste</h1>
+    <div className="page">
+      <PageHeader title="Einkaufsliste">
         {items.length > 0 && (
-          <button
-            type="button"
-            onClick={handleBuyAll}
-            disabled={buyingAllBusy}
-            className="shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-          >
+          <button type="button" onClick={handleBuyAll} disabled={buyingAllBusy} className="btn btn-primary btn-sm">
             {buyingAllBusy ? 'Speichert...' : 'Alle ins Inventar'}
           </button>
         )}
-      </div>
+      </PageHeader>
+
       {loading ? (
-        <p className="mt-6 text-sm text-gray-500">Lädt...</p>
+        <p className="mt-8 text-center text-sm text-ink-faint">Lädt...</p>
       ) : items.length === 0 ? (
-        <p className="mt-6 text-sm text-gray-500">Deine Einkaufsliste ist leer.</p>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-ink-muted">Deine Einkaufsliste ist leer.</p>
+          <p className="mt-1 text-sm text-ink-faint">
+            Fehlende Zutaten landen hier, sobald du sie in einem Rezept oder im Inventar zur Liste hinzufügst.
+          </p>
+        </div>
       ) : (
         groups.map(([categoryLabel, groupItems]) => (
-          <div key={categoryLabel} className="mt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {CATEGORY_ICONS[categoryLabel] ?? UNCATEGORIZED_ICON} {categoryLabel}
+          <div key={categoryLabel} className="mt-5">
+            <h2 className="shelf-label">
+              <span aria-hidden>{CATEGORY_ICONS[categoryLabel] ?? UNCATEGORIZED_ICON}</span>
+              {categoryLabel}
             </h2>
-            <ul className="mt-2 divide-y divide-gray-100">
+            <ul className="mt-1 divide-y divide-rule">
               {groupItems.map((item) => (
-                <li key={item.id} className="py-3">
+                <li key={item.id} className="py-2">
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openBuyPanel(item)}
-                      className="shrink-0 rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700"
-                    >
+                    <button type="button" onClick={() => openBuyPanel(item)} className="btn btn-outline btn-sm shrink-0">
                       Gekauft
                     </button>
-                    <span className="min-w-0 flex-1 truncate text-gray-900">{item.name}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium text-ink">{item.name}</span>
                     <input
                       type="number"
                       inputMode="decimal"
-                      placeholder="Menge"
+                      placeholder="–"
                       value={item.quantity ?? ''}
                       onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                      className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
+                      aria-label={`Menge für ${item.name}`}
+                      className="field-num min-h-10 w-14 px-1 text-xs"
                     />
                     <select
                       value={item.unit ?? ''}
                       onChange={(e) => handleUnitChange(item.id, e.target.value)}
-                      className="w-20 rounded border border-gray-300 bg-white px-1 py-1 text-sm"
+                      aria-label={`Einheit für ${item.name}`}
+                      className="field min-h-10 w-20 px-1 py-1 text-xs"
                     >
                       <option value="">–</option>
                       {UNIT_OPTIONS.map((option) => (
@@ -220,45 +221,50 @@ export default function ShoppingList() {
                     <button
                       type="button"
                       onClick={() => handleRemove(item.id)}
-                      className="shrink-0 text-xs font-medium text-gray-500"
+                      className="btn-icon h-10 w-8 text-lg text-ink-faint hover:text-danger"
+                      aria-label={`${item.name} von der Liste entfernen`}
                     >
-                      Entfernen
+                      ×
                     </button>
                   </div>
 
                   {buyingId === item.id && (
-                    <div className="mt-2 rounded-lg bg-gray-50 p-2">
-                      <p className="text-xs text-gray-500">
-                        Wohin damit?{classifyingBuy && <span className="ml-1 text-gray-400">wird vorgeschlagen...</span>}
+                    <div className="card mt-2 bg-porcelain p-2.5">
+                      <p className="text-xs text-ink-muted">
+                        Wohin damit?
+                        {classifyingBuy && <span className="ml-1 text-ink-faint">wird vorgeschlagen...</span>}
                       </p>
-                      <div className="mt-1 flex gap-2">
-                        {locationOptions.map((option) => (
+                      <div className="mt-2 flex gap-2">
+                        {LOCATION_OPTIONS.map((option) => (
                           <button
                             key={option.value}
                             type="button"
                             disabled={classifyingBuy}
                             onClick={() => setBuyingLocation(option.value)}
-                            className={`flex-1 rounded-lg px-2 py-1.5 text-xs disabled:opacity-50 ${
-                              buyingLocation === option.value ? 'bg-black text-white' : 'bg-white text-gray-600'
+                            aria-pressed={buyingLocation === option.value}
+                            className={`btn btn-sm min-h-10 flex-1 px-1 ${
+                              buyingLocation === option.value ? 'btn-primary' : 'btn-outline'
                             }`}
                           >
+                            <span
+                              className={`dot ${
+                                buyingLocation === option.value ? 'bg-white' : LOCATION_DOT_CLASS[option.value]
+                              }`}
+                              aria-hidden
+                            />
                             {option.label}
                           </button>
                         ))}
                       </div>
                       <div className="mt-2 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setBuyingId(null)}
-                          className="flex-1 rounded-lg bg-white py-1.5 text-xs font-medium text-gray-600"
-                        >
+                        <button type="button" onClick={() => setBuyingId(null)} className="btn btn-quiet btn-sm flex-1">
                           Abbrechen
                         </button>
                         <button
                           type="button"
                           onClick={() => handleConfirmPurchase(item)}
                           disabled={buyingBusy || classifyingBuy}
-                          className="flex-[2] rounded-lg bg-black py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                          className="btn btn-primary btn-sm flex-[2]"
                         >
                           {buyingBusy ? 'Speichert...' : 'Ins Inventar aufnehmen'}
                         </button>

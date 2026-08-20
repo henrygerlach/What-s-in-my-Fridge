@@ -6,7 +6,7 @@ import { useClickOutside } from '../lib/useClickOutside'
 import { useRealtimeRefresh } from '../lib/useRealtimeRefresh'
 import { getMissingIngredients } from '../lib/stock'
 import { addMissingIngredientsToShoppingList } from '../lib/shoppingList'
-import BackLink from '../components/BackLink'
+import PageHeader from '../components/PageHeader'
 import {
   addMealPlanItem,
   aggregateIngredients,
@@ -141,34 +141,30 @@ export default function MealPlan() {
   const filteredRecipes = recipes.filter((r) => r.title.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <BackLink to="/recipes" />
-          <h1 className="text-xl font-semibold">Wochenplan</h1>
-        </div>
+    <div className="page">
+      <PageHeader title="Wochenplan" back="/recipes">
         <button
           type="button"
           onClick={handleAddMissingForWeek}
           disabled={addingMissing || planItems.length === 0}
-          className="shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+          className="btn btn-primary btn-sm"
         >
           {addingMissing ? 'Prüft...' : 'Fehlendes zur Liste'}
         </button>
-      </div>
+      </PageHeader>
 
       {loading ? (
-        <p className="mt-6 text-sm text-gray-500">Lädt...</p>
+        <p className="mt-8 text-center text-sm text-ink-faint">Lädt...</p>
       ) : (
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="flex flex-col gap-2">
           {days.map((day) => {
             const dayKey = formatDateKey(day)
             const itemsForDay = planItems.filter((item) => item.plan_date === dayKey)
             return (
-              <li key={dayKey} className="rounded-lg border border-gray-200 p-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-700">{formatDayLabel(day)}</h2>
-                  <div ref={pickerKey === dayKey ? pickerRef : undefined} className="relative">
+              <li key={dayKey} className="card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="shelf-label flex-1">{formatDayLabel(day)}</h2>
+                  <div ref={pickerKey === dayKey ? pickerRef : undefined} className="relative shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -176,49 +172,53 @@ export default function MealPlan() {
                         setPickerSearch('')
                         setPendingRecipe(null)
                       }}
-                      className="text-xs font-medium text-blue-600"
+                      aria-expanded={pickerKey === dayKey}
+                      className="btn btn-outline btn-sm min-h-9"
                     >
                       + Rezept
                     </button>
                     {pickerKey === dayKey && (
-                      <div className="absolute right-0 top-full z-10 mt-1 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                      <div className="popover w-64">
                         {pendingRecipe ? (
                           <div>
-                            <p className="truncate text-sm font-medium text-gray-900">{pendingRecipe.title}</p>
+                            <p className="truncate px-1 text-sm font-medium text-ink">{pendingRecipe.title}</p>
                             <div className="mt-2 flex items-center justify-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => setPendingPortions((current) => Math.max(1, current - 1))}
-                                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700"
+                                className="btn-icon h-10 w-10 border border-rule bg-surface text-ink"
                                 aria-label="Weniger Portionen"
                               >
                                 −
                               </button>
-                              <span className="w-6 text-center text-sm font-medium text-gray-900">
+                              <span
+                                className="w-8 text-center text-base font-semibold text-ink"
+                                style={{ fontFamily: 'var(--font-mono)' }}
+                              >
                                 {pendingPortions}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => setPendingPortions((current) => current + 1)}
-                                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700"
+                                className="btn-icon h-10 w-10 border border-rule bg-surface text-ink"
                                 aria-label="Mehr Portionen"
                               >
                                 +
                               </button>
-                              <span className="text-xs text-gray-500">Portionen</span>
+                              <span className="text-xs text-ink-muted">Portionen</span>
                             </div>
                             <div className="mt-2 flex gap-2">
                               <button
                                 type="button"
                                 onClick={() => setPendingRecipe(null)}
-                                className="flex-1 rounded-md bg-gray-100 py-1.5 text-xs font-medium text-gray-600"
+                                className="btn btn-quiet btn-sm flex-1"
                               >
                                 Zurück
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleAdd(dayKey, pendingRecipe.id, pendingPortions)}
-                                className="flex-1 rounded-md bg-black py-1.5 text-xs font-semibold text-white"
+                                className="btn btn-primary btn-sm flex-1"
                               >
                                 Hinzufügen
                               </button>
@@ -231,19 +231,20 @@ export default function MealPlan() {
                               type="search"
                               value={pickerSearch}
                               onChange={(e) => setPickerSearch(e.target.value)}
-                              placeholder="Rezept suchen..."
-                              className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm"
+                              placeholder="Rezept suchen"
+                              aria-label="Rezept suchen"
+                              className="field min-h-10"
                             />
-                            <ul className="mt-2 max-h-48 overflow-y-auto">
+                            <ul className="mt-1 max-h-56 overflow-y-auto">
                               {filteredRecipes.length === 0 && (
-                                <li className="px-1 py-1 text-xs text-gray-400">Keine Rezepte gefunden.</li>
+                                <li className="px-2 py-2 text-xs text-ink-faint">Keine Rezepte gefunden.</li>
                               )}
                               {filteredRecipes.map((recipe) => (
                                 <li key={recipe.id}>
                                   <button
                                     type="button"
                                     onClick={() => selectRecipe(recipe)}
-                                    className="block w-full truncate rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                    className="menu-item w-full truncate text-left"
                                   >
                                     {recipe.title}
                                   </button>
@@ -257,25 +258,29 @@ export default function MealPlan() {
                   </div>
                 </div>
 
-                {itemsForDay.length > 0 && (
-                  <ul className="mt-2 flex flex-col gap-1.5">
+                {itemsForDay.length === 0 ? (
+                  <p className="mt-1.5 text-sm text-ink-faint">Nichts geplant</p>
+                ) : (
+                  <ul className="mt-1.5 divide-y divide-rule">
                     {itemsForDay.map((item) => {
                       const recipe = recipeById.get(item.recipe_id)
                       return (
-                        <li key={item.id} className="flex items-center justify-between gap-2">
+                        <li key={item.id} className="flex items-center justify-between gap-2 py-1.5">
                           {recipe ? (
-                            <Link to={`/recipes/${recipe.id}`} className="min-w-0 truncate text-sm text-gray-900">
+                            <Link to={`/recipes/${recipe.id}`} className="min-w-0 flex-1 truncate text-sm text-ink">
                               {recipe.title}
-                              {item.portions && <span className="text-gray-400"> · {item.portions} Portionen</span>}
+                              {item.portions && (
+                                <span className="measure ml-1.5">{item.portions} Portionen</span>
+                              )}
                             </Link>
                           ) : (
-                            <span className="min-w-0 truncate text-sm text-gray-400">Rezept gelöscht</span>
+                            <span className="min-w-0 flex-1 truncate text-sm text-ink-faint">Rezept gelöscht</span>
                           )}
                           <button
                             type="button"
                             onClick={() => handleRemove(item)}
-                            className="shrink-0 text-xs font-medium text-gray-400"
-                            aria-label="Aus Plan entfernen"
+                            className="btn-icon h-9 w-8 text-lg text-ink-faint hover:text-danger"
+                            aria-label="Aus dem Plan entfernen"
                           >
                             ×
                           </button>

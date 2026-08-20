@@ -33,12 +33,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={showToast}>
       {children}
       {toast && (
-        <div className="fixed inset-x-4 bottom-20 z-50 flex items-center justify-between gap-3 rounded-lg bg-gray-900 px-4 py-3 text-sm text-white shadow-lg">
-          <span>{toast.message}</span>
+        <div
+          role="status"
+          className="fixed inset-x-4 z-50 mx-auto flex max-w-screen-sm items-center justify-between gap-3
+                     rounded-xl bg-ink px-4 py-3 text-sm text-white shadow-xl"
+          style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom))' }}
+        >
+          <span className="min-w-0">{toast.message}</span>
           {toast.action && (
             <button
               type="button"
-              className="font-semibold text-blue-300"
+              className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-white underline underline-offset-4"
               onClick={() => {
                 if (timeoutRef.current) window.clearTimeout(timeoutRef.current)
                 toast.action?.onAction()

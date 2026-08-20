@@ -5,7 +5,15 @@ import { useToast } from '../lib/ToastContext'
 import { useClickOutside } from '../lib/useClickOutside'
 import { useRealtimeRefresh } from '../lib/useRealtimeRefresh'
 import { groupByCategory } from '../lib/groupByCategory'
-import { CATEGORY_OPTIONS, CATEGORY_ICONS, UNCATEGORIZED_ICON } from '../lib/constants'
+import {
+  CATEGORY_OPTIONS,
+  CATEGORY_ICONS,
+  UNCATEGORIZED_ICON,
+  LOCATION_LABELS,
+  LOCATION_DOT_CLASS,
+} from '../lib/constants'
+import PageHeader from '../components/PageHeader'
+import AvailabilityMeter from '../components/AvailabilityMeter'
 import { loadRecipesWithAvailability } from '../lib/recipeAvailability'
 import type { RecipeWithAvailability } from '../lib/recipeAvailability'
 import { currentMealCategory, MEAL_CATEGORY_LABELS } from '../lib/mealTime'
@@ -16,17 +24,11 @@ import { isMatch } from '../lib/matching'
 import { logConsumption } from '../lib/consumptionLog'
 import type { FoodItem, Location, StapleItem } from '../types'
 
-const locationLabels: Record<Location, string> = {
-  fridge: 'Kühlschrank',
-  pantry: 'Vorrat',
-  freezer: 'Gefrierfach',
-}
-
 const filters: Array<{ value: Location | 'all'; label: string }> = [
   { value: 'all', label: 'Alle' },
-  { value: 'fridge', label: 'Kühlschrank' },
-  { value: 'pantry', label: 'Vorrat' },
-  { value: 'freezer', label: 'Gefrierfach' },
+  { value: 'fridge', label: LOCATION_LABELS.fridge },
+  { value: 'pantry', label: LOCATION_LABELS.pantry },
+  { value: 'freezer', label: LOCATION_LABELS.freezer },
 ]
 
 const consumeFractions: Array<{ value: number; label: string }> = [
@@ -207,71 +209,56 @@ export default function Inventory() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Inventar</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/waste"
-            className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600"
-          >
-            Statistik
-          </Link>
-          {items.length > 0 && (
-            <div ref={confirmingClearAll ? clearAllMenuRef : undefined} className="relative">
-              <button
-                type="button"
-                onClick={() => setConfirmingClearAll((current) => !current)}
-                className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600"
-              >
-                Inventar leeren
-              </button>
-              {confirmingClearAll && (
-                <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
-                  <p className="text-xs text-gray-500">{items.length} Artikel wirklich löschen?</p>
-                  <div className="mt-2 flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingClearAll(false)}
-                      className="flex-1 rounded-md bg-gray-100 px-1 py-1 text-xs text-gray-700"
-                    >
-                      Abbrechen
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleClearAll}
-                      disabled={clearingAll}
-                      className="flex-1 rounded-md bg-red-600 px-1 py-1 text-xs font-medium text-white disabled:opacity-50"
-                    >
-                      {clearingAll ? '...' : 'Löschen'}
-                    </button>
-                  </div>
+    <div className="page">
+      <PageHeader title="Inventar">
+        <Link to="/waste" className="chip">
+          Statistik
+        </Link>
+        {items.length > 0 && (
+          <div ref={confirmingClearAll ? clearAllMenuRef : undefined} className="relative">
+            <button type="button" onClick={() => setConfirmingClearAll((current) => !current)} className="chip">
+              Leeren
+            </button>
+            {confirmingClearAll && (
+              <div className="popover w-52">
+                <p className="px-1 text-sm text-ink-muted">
+                  <span className="measure text-ink">{items.length}</span> Artikel wirklich löschen?
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={() => setConfirmingClearAll(false)} className="btn btn-quiet btn-sm flex-1">
+                    Abbrechen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    disabled={clearingAll}
+                    className="btn btn-danger btn-sm flex-1"
+                  >
+                    {clearingAll ? '...' : 'Löschen'}
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
-          <Link
-            to="/add"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-lg font-semibold text-white"
-          >
-            +
-          </Link>
-        </div>
-      </div>
+              </div>
+            )}
+          </div>
+        )}
+        <Link to="/add" aria-label="Artikel hinzufügen" className="btn-icon bg-ink font-semibold text-white">
+          +
+        </Link>
+      </PageHeader>
 
       {missingStaples.length > 0 && (
-        <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-orange-600">Standardvorrat leer</h2>
-          <ul className="mt-2 flex flex-col gap-1.5">
+        <div className="card mb-3 border-partial/40 bg-partial/5 p-3">
+          <h2 className="shelf-label text-partial">Standardvorrat leer</h2>
+          <ul className="mt-2 flex flex-col">
             {missingStaples.map((staple) => (
               <li key={staple.id} className="flex items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-sm text-gray-900">{staple.name}</span>
+                <span className="min-w-0 truncate text-sm">{staple.name}</span>
                 <button
                   type="button"
                   onClick={() => handleAddStapleToShoppingList(staple)}
-                  className="shrink-0 text-xs font-medium text-blue-600"
+                  className="btn btn-sm text-partial"
                 >
-                  + Zur Liste
+                  + Liste
                 </button>
               </li>
             ))}
@@ -279,110 +266,128 @@ export default function Inventory() {
         </div>
       )}
 
+      {/* The home screen's thesis: before anything else, the fridge answers
+          what can be cooked from it right now. */}
       {topRecipes.length > 0 && (
-        <div className="mt-3 rounded-lg bg-gray-50 p-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-            {MEAL_CATEGORY_LABELS[mealCategory] ?? 'Was koche ich heute?'}
-          </h2>
-          <ul className="mt-2 flex flex-col gap-1.5">
+        <section className="card mb-3 overflow-hidden border-t-4 border-t-ink">
+          <h2 className="shelf-label px-3 pt-3">{MEAL_CATEGORY_LABELS[mealCategory] ?? 'Was koche ich heute?'}</h2>
+          <ul className="mt-1 divide-y divide-rule">
             {topRecipes.map((recipe) => (
               <li key={recipe.id}>
                 <Link
                   to={`/recipes/${recipe.id}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2"
+                  className="flex items-center justify-between gap-3 px-3 py-3 hover:bg-shelf"
                 >
-                  <span className="min-w-0 truncate text-sm font-medium text-gray-900">{recipe.title}</span>
-                  <span
-                    className={`shrink-0 whitespace-nowrap text-xs font-medium ${
-                      recipe.available === recipe.total ? 'text-green-600' : 'text-gray-500'
-                    }`}
-                  >
-                    {recipe.available}/{recipe.total} Zutaten
-                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink">{recipe.title}</span>
+                  <AvailabilityMeter available={recipe.available} total={recipe.total} />
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       <input
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Suchen..."
-        className="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        placeholder="Lebensmittel suchen"
+        aria-label="Lebensmittel suchen"
+        className="field"
       />
 
-      <div className="mt-3 flex gap-2 overflow-x-auto">
+      <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
         {filters.map((f) => (
           <button
             key={f.value}
             type="button"
             onClick={() => setFilter(f.value)}
-            className={`whitespace-nowrap rounded-full px-3 py-1 text-sm ${
-              filter === f.value ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-            }`}
+            aria-pressed={filter === f.value}
+            className={`chip ${filter === f.value ? 'chip-on' : ''}`}
           >
+            {f.value !== 'all' && (
+              <span className={`dot mr-1.5 ${filter === f.value ? 'bg-white' : LOCATION_DOT_CLASS[f.value]}`} />
+            )}
             {f.label}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p className="mt-6 text-sm text-gray-500">Lädt...</p>
+        <p className="mt-8 text-center text-sm text-ink-faint">Lädt...</p>
       ) : visibleItems.length === 0 ? (
-        <p className="mt-6 text-sm text-gray-500">Keine Lebensmittel gefunden.</p>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-ink-muted">
+            {items.length === 0 ? 'Dein Inventar ist leer.' : 'Keine Lebensmittel gefunden.'}
+          </p>
+          {items.length === 0 && (
+            <Link to="/add" className="btn btn-primary mt-3">
+              Erstes Lebensmittel eintragen
+            </Link>
+          )}
+        </div>
       ) : (
         groups.map(([categoryLabel, groupItems]) => (
-          <div key={categoryLabel} className="mt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {CATEGORY_ICONS[categoryLabel] ?? UNCATEGORIZED_ICON} {categoryLabel}
+          <div key={categoryLabel} className="mt-5">
+            <h2 className="shelf-label">
+              <span aria-hidden>{CATEGORY_ICONS[categoryLabel] ?? UNCATEGORIZED_ICON}</span>
+              {categoryLabel}
             </h2>
-            <ul className="mt-2 divide-y divide-gray-100">
+            <ul className="mt-1 divide-y divide-rule">
               {groupItems.map((item) => {
                 const isStaple = staples.some((staple) => isMatch(staple.name, item.name))
                 return (
                 <li
                   key={item.id}
                   ref={openMenuItemId === item.id ? menuContainerRef : undefined}
-                  className="relative flex items-center justify-between py-3"
+                  className="relative flex items-center justify-between gap-2 py-2"
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-900">{item.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {locationLabels[item.location]}
-                      {item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ''}` : ''}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-ink">{item.name}</p>
+                    {/* Quantity first, location second: the dot already carries
+                        the location, so it is the half that can be truncated
+                        away on a narrow row without losing anything. */}
+                    <p className="mt-0.5 flex items-center gap-1.5">
+                      <span
+                        className={`dot ${LOCATION_DOT_CLASS[item.location]}`}
+                        title={LOCATION_LABELS[item.location]}
+                        aria-hidden
+                      />
+                      <span className="measure truncate">
+                        {item.quantity ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''} · ` : ''}
+                        {LOCATION_LABELS[item.location]}
+                      </span>
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-0.5">
                     <button
                       type="button"
                       onClick={() => handleToggleStaple(item)}
-                      className={`text-base ${isStaple ? 'text-amber-500' : 'text-gray-400'}`}
+                      className={`btn-icon h-10 w-8 text-base ${isStaple ? 'text-partial' : 'text-ink-faint'}`}
                       aria-label={isStaple ? 'Standardvorrat entfernen' : 'Als Standardvorrat markieren'}
+                      aria-pressed={isStaple}
                     >
                       {isStaple ? '★' : '☆'}
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleMenu(item.id, 'list')}
-                      className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700"
+                      className="btn btn-quiet btn-sm"
                     >
-                      Einkaufsliste
+                      + Liste
                     </button>
                     <button
                       type="button"
                       onClick={() => (item.quantity ? toggleMenu(item.id, 'consume') : void handleFullRemoval(item))}
-                      className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700"
+                      className="btn btn-quiet btn-sm"
                     >
                       Verbraucht
                     </button>
                     <button
                       type="button"
                       onClick={() => handleFullRemoval(item, 'discarded')}
-                      className="text-base text-gray-400"
+                      className="btn-icon h-10 w-8 text-base text-ink-faint hover:text-danger"
                       aria-label="Weggeworfen"
                     >
                       🗑
@@ -390,14 +395,15 @@ export default function Inventory() {
                   </div>
 
                   {openMenuItemId === item.id && openMenuMode === 'consume' && item.quantity != null && (
-                    <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                    <div className="popover w-52">
+                      <p className="px-1 pb-1 text-xs text-ink-muted">Wie viel ist weg?</p>
                       <div className="grid grid-cols-4 gap-1">
                         {consumeFractions.map((fraction) => (
                           <button
                             key={fraction.value}
                             type="button"
                             onClick={() => applyConsumption(item, (item.quantity ?? 0) * fraction.value)}
-                            className="rounded-md bg-gray-100 px-1 py-1 text-xs text-gray-700"
+                            className="btn btn-quiet min-h-10 rounded-md px-1 text-xs"
                           >
                             {fraction.label}
                           </button>
@@ -417,9 +423,10 @@ export default function Inventory() {
                           placeholder={`Menge${item.unit ? ` (${item.unit})` : ''}`}
                           value={customAmount}
                           onChange={(e) => setCustomAmount(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
+                          aria-label="Verbrauchte Menge"
+                          className="field-num min-h-10 text-xs"
                         />
-                        <button type="submit" className="rounded-md bg-black px-2 py-1 text-xs text-white">
+                        <button type="submit" className="btn btn-primary min-h-10 px-3 text-xs">
                           OK
                         </button>
                       </form>
@@ -427,14 +434,14 @@ export default function Inventory() {
                   )}
 
                   {openMenuItemId === item.id && openMenuMode === 'list' && (
-                    <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
-                      <p className="text-xs text-gray-500">Menge für die Einkaufsliste</p>
+                    <div className="popover w-52">
+                      <p className="px-1 pb-1 text-xs text-ink-muted">Menge für die Einkaufsliste</p>
                       <form
                         onSubmit={(e) => {
                           e.preventDefault()
                           handleAddToShoppingList(item, listAmount ? Number(listAmount) : null)
                         }}
-                        className="mt-1 flex gap-1"
+                        className="flex gap-1"
                       >
                         <input
                           type="number"
@@ -442,9 +449,10 @@ export default function Inventory() {
                           placeholder={`Menge${item.unit ? ` (${item.unit})` : ''}`}
                           value={listAmount}
                           onChange={(e) => setListAmount(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
+                          aria-label="Menge für die Einkaufsliste"
+                          className="field-num min-h-10 text-xs"
                         />
-                        <button type="submit" className="rounded-md bg-black px-2 py-1 text-xs text-white">
+                        <button type="submit" className="btn btn-primary min-h-10 px-3 text-xs">
                           OK
                         </button>
                       </form>

@@ -5,7 +5,7 @@ export default function BackLink({ to }: { to: string }) {
     <Link
       to={to}
       aria-label="Zurück"
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100"
+      className="btn-icon -ml-2 text-ink-muted hover:bg-shelf hover:text-ink"
     >
       ←
     </Link>

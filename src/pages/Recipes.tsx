@@ -11,13 +11,9 @@ import { useToast } from '../lib/ToastContext'
 import { groupByCategory } from '../lib/groupByCategory'
 import { RECIPE_CATEGORY_OPTIONS, RECIPE_CATEGORY_ICONS, UNCATEGORIZED_ICON, TAG_GROUPS } from '../lib/constants'
 import { loadLastCookedMap } from '../lib/cookLog'
+import PageHeader from '../components/PageHeader'
+import AvailabilityMeter from '../components/AvailabilityMeter'
 import { formatRelativeTime } from '../lib/relativeTime'
-
-function availabilityColorClass(available: number, total: number): string {
-  if (total === 0 || available === total) return 'text-green-600'
-  if (available > 0) return 'text-orange-500'
-  return 'text-red-500'
-}
 
 export default function Recipes() {
   const [recipes, setRecipes] = useState<RecipeWithAvailability[]>([])
@@ -133,76 +129,63 @@ export default function Recipes() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Rezepte</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/plan"
-            aria-label="Essensplan"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-lg"
+    <div className="page">
+      <PageHeader title="Rezepte">
+        <Link to="/plan" aria-label="Wochenplan" className="btn-icon border border-rule bg-surface text-ink">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.7}
+               strokeLinecap="round" aria-hidden>
+            <rect x="3" y="5" width="18" height="16" rx="2.5" />
+            <path d="M3 10h18M8 3v4M16 3v4" />
+          </svg>
+        </Link>
+        <div ref={menuOpen ? menuRef : undefined} className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((current) => !current)}
+            aria-label="Rezept hinzufügen"
+            aria-expanded={menuOpen}
+            className="btn-icon bg-ink font-semibold text-white"
           >
-            📅
-          </Link>
-          <div ref={menuOpen ? menuRef : undefined} className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((current) => !current)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-lg font-semibold text-white"
-            >
-              +
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
-                <Link
-                  to="/recipes/new"
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Rezept erstellen
-                </Link>
-                <Link
-                  to="/recipes/suggest"
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  KI-Vorschlag
-                </Link>
-                <Link
-                  to="/recipes/import"
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Screenshot importieren
-                </Link>
-              </div>
-            )}
-          </div>
+            +
+          </button>
+          {menuOpen && (
+            <div className="popover w-56 p-1">
+              <Link to="/recipes/new" onClick={() => setMenuOpen(false)} className="menu-item">
+                Rezept erstellen
+              </Link>
+              <Link to="/recipes/suggest" onClick={() => setMenuOpen(false)} className="menu-item">
+                KI-Vorschlag
+              </Link>
+              <Link to="/recipes/import" onClick={() => setMenuOpen(false)} className="menu-item">
+                Screenshot importieren
+              </Link>
+            </div>
+          )}
         </div>
-      </div>
+      </PageHeader>
 
       <input
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Suchen..."
-        className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        placeholder="Rezept suchen"
+        aria-label="Rezept suchen"
+        className="field"
       />
 
       {tagGroups.length > 0 && (
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-2.5">
           {tagGroups.map((group) => (
             <div key={group.label}>
-              <p className="text-xs text-gray-400">{group.label}</p>
-              <div className="mt-1 flex flex-wrap gap-1.5">
+              <p className="shelf-label">{group.label}</p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {group.tags.map((tag) => (
                   <button
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`whitespace-nowrap rounded-full px-3 py-1 text-sm ${
-                      selectedTags.includes(tag) ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
+                    aria-pressed={selectedTags.includes(tag)}
+                    className={`chip ${selectedTags.includes(tag) ? 'chip-on' : ''}`}
                   >
                     {tag}
                   </button>
@@ -214,81 +197,88 @@ export default function Recipes() {
       )}
 
       {loading ? (
-        <p className="mt-6 text-sm text-gray-500">Lädt...</p>
+        <p className="mt-8 text-center text-sm text-ink-faint">Lädt...</p>
       ) : visibleRecipes.length === 0 ? (
-        <p className="mt-6 text-sm text-gray-500">Keine Rezepte gefunden.</p>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-ink-muted">
+            {recipes.length === 0 ? 'Noch keine Rezepte gespeichert.' : 'Keine Rezepte gefunden.'}
+          </p>
+          {recipes.length === 0 && (
+            <Link to="/recipes/new" className="btn btn-primary mt-3">
+              Erstes Rezept anlegen
+            </Link>
+          )}
+        </div>
       ) : (
         groups.map(([categoryLabel, groupRecipes]) => (
-          <div key={categoryLabel} className="mt-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {RECIPE_CATEGORY_ICONS[categoryLabel] ?? UNCATEGORIZED_ICON} {categoryLabel}
+          <div key={categoryLabel} className="mt-5">
+            <h2 className="shelf-label">
+              <span aria-hidden>{RECIPE_CATEGORY_ICONS[categoryLabel] ?? UNCATEGORIZED_ICON}</span>
+              {categoryLabel}
             </h2>
-            <ul className="mt-2 divide-y divide-gray-100">
+            <ul className="mt-1 divide-y divide-rule">
               {groupRecipes.map((recipe) => (
-                <li key={recipe.id} className="relative flex items-center justify-between gap-2 py-3">
+                <li key={recipe.id} className="relative flex items-start justify-between gap-2 py-3">
                   <Link to={`/recipes/${recipe.id}`} className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-gray-900">{recipe.title}</span>
-                    <span className="block text-xs text-gray-400">
-                      🕒{' '}
+                    <span className="block truncate font-medium text-ink">{recipe.title}</span>
+                    <span className="measure mt-0.5 block truncate">
                       {lastCooked.has(recipe.id)
                         ? `Zuletzt gekocht ${formatRelativeTime(lastCooked.get(recipe.id)!)}`
                         : 'Noch nie gekocht'}
                     </span>
+                    {/* Headline figures only — the full macro split is on the
+                        recipe itself, and spelling it out here only ever
+                        truncated mid-word. */}
                     {recipe.kcal_per_portion != null && (
-                      <span className="block text-xs text-gray-400">
-                        🔥 {Math.round(recipe.kcal_per_portion)} kcal
+                      <span className="measure mt-0.5 block truncate">
+                        {Math.round(recipe.kcal_per_portion)} kcal
                         {recipe.protein_g_per_portion != null &&
                           ` · ${Math.round(recipe.protein_g_per_portion)} g Eiweiß`}
-                        {recipe.fat_g_per_portion != null && ` · ${Math.round(recipe.fat_g_per_portion)} g Fett`}
-                        {recipe.carbs_g_per_portion != null && ` · ${Math.round(recipe.carbs_g_per_portion)} g KH`}
-                        {' '}pro Portion
+                        <span className="ml-1.5 font-sans">pro Portion</span>
                       </span>
                     )}
                     {(recipe.tags ?? []).length > 0 && (
-                      <span className="mt-0.5 flex flex-wrap gap-1">
+                      <span className="mt-1.5 flex flex-wrap gap-1">
                         {(recipe.tags ?? []).map((tag) => (
-                          <span key={tag} className="rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                          <span key={tag} className="tag">
                             {tag}
                           </span>
                         ))}
                       </span>
                     )}
                   </Link>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span
-                      className={`whitespace-nowrap text-sm font-medium ${availabilityColorClass(recipe.available, recipe.total)}`}
-                    >
-                      {recipe.available}/{recipe.total} Zutaten vorhanden
-                    </span>
+                  <div className="flex shrink-0 items-start gap-1">
+                    <AvailabilityMeter available={recipe.available} total={recipe.total} className="pt-0.5" />
                     <div ref={openRowMenuId === recipe.id ? rowMenuRef : undefined} className="relative">
                       <button
                         type="button"
                         onClick={() => setOpenRowMenuId((current) => (current === recipe.id ? null : recipe.id))}
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100"
+                        className="btn-icon h-9 w-8 text-ink-muted hover:text-ink"
                         aria-label="Optionen"
+                        aria-expanded={openRowMenuId === recipe.id}
                       >
                         ⋮
                       </button>
                       {openRowMenuId === recipe.id && (
-                        <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                        <div className="popover w-52 p-1">
                           <Link
                             to={`/recipes/${recipe.id}/edit`}
                             onClick={() => setOpenRowMenuId(null)}
-                            className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            className="menu-item"
                           >
                             Bearbeiten
                           </Link>
                           <button
                             type="button"
                             onClick={() => handleAddMissingToShoppingList(recipe)}
-                            className="block w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                            className="menu-item w-full text-left"
                           >
                             Fehlende zur Einkaufsliste
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteRecipe(recipe)}
-                            className="block w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100"
+                            className="menu-item w-full text-left text-danger"
                           >
                             Löschen
                           </button>

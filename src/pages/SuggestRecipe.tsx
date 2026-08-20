@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/ToastContext'
 import { isIngredientAvailable } from '../lib/stock'
-import BackLink from '../components/BackLink'
+import PageHeader from '../components/PageHeader'
+import AvailabilityMeter from '../components/AvailabilityMeter'
 import type { FoodItem } from '../types'
 
 interface SuggestedIngredient {
@@ -98,33 +99,31 @@ export default function SuggestRecipe() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-2">
-        <BackLink to="/recipes" />
-        <h1 className="text-xl font-semibold">KI-Vorschlag</h1>
-      </div>
+    <div className="page">
+      <PageHeader title="KI-Vorschlag" back="/recipes" />
 
-      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div>
-          <label className="text-sm text-gray-600">Was möchtest du kochen?</label>
+          <label htmlFor="suggest-prompt" className="label">
+            Was möchtest du kochen?
+          </label>
           <textarea
+            id="suggest-prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="z. B. proteinreiches Frühstück aus vorhandenen Zutaten"
             rows={3}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="field mt-1.5"
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading || !prompt.trim()}
-          className="rounded-lg bg-black py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={loading || !prompt.trim()} className="btn btn-primary">
           {loading ? 'Lädt Vorschläge...' : 'Vorschläge holen'}
         </button>
       </form>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>
+      )}
 
       <div className="mt-4 flex flex-col gap-3">
         {suggestions.map((suggestion, index) => {
@@ -132,43 +131,43 @@ export default function SuggestRecipe() {
             isIngredientAvailable(ingredient, foodItems),
           ).length
           return (
-          <div key={index} className="rounded-lg border border-gray-200 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="font-semibold text-gray-900">{suggestion.title}</h2>
-              <div className="flex shrink-0 items-center gap-2">
-                {suggestion.ingredients.length > 0 && (
-                  <span
-                    className={`whitespace-nowrap text-xs font-medium ${
-                      available === suggestion.ingredients.length ? 'text-green-600' : 'text-gray-500'
-                    }`}
-                  >
-                    {available}/{suggestion.ingredients.length} vorhanden
-                  </span>
-                )}
-                {suggestion.category && (
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                    {suggestion.category}
-                  </span>
-                )}
+          <div key={index} className="card p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="truncate text-lg font-bold text-ink">{suggestion.title}</h2>
+                {suggestion.category && <span className="tag mt-1">{suggestion.category}</span>}
               </div>
+              <AvailabilityMeter available={available} total={suggestion.ingredients.length} />
             </div>
-            <p className="mt-1 text-sm text-gray-600">{suggestion.description}</p>
-            {suggestion.portions && <p className="mt-1 text-xs text-gray-400">Für {suggestion.portions} Portionen</p>}
-            <ul className="mt-2 flex flex-col gap-1 text-xs text-gray-500">
-              {suggestion.ingredients.map((ingredient, i) => (
-                <li key={i}>
-                  {ingredient.name}
-                  {ingredient.quantity
-                    ? ` – ${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''}`
-                    : ''}
-                </li>
-              ))}
+            <p className="mt-2 text-sm text-ink-muted">{suggestion.description}</p>
+            {suggestion.portions && <p className="mt-1 text-xs text-ink-faint">Für {suggestion.portions} Portionen</p>}
+            <ul className="mt-3 flex flex-col gap-1.5">
+              {suggestion.ingredients.map((ingredient, i) => {
+                const inStock = isIngredientAvailable(ingredient, foodItems)
+                return (
+                  <li key={i} className="flex items-center gap-2.5">
+                    <span
+                      aria-hidden
+                      className={`h-2.5 w-2.5 shrink-0 rounded-xs ${inStock ? 'bg-full' : 'border border-rule bg-shelf'}`}
+                    />
+                    <span className={`min-w-0 truncate text-sm ${inStock ? 'text-ink' : 'text-ink-faint'}`}>
+                      {ingredient.name}
+                    </span>
+                    {ingredient.quantity != null && (
+                      <span className="measure shrink-0">
+                        {ingredient.quantity}
+                        {ingredient.unit ? ` ${ingredient.unit}` : ''}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
             <button
               type="button"
               onClick={() => handleCreate(suggestion, index)}
               disabled={savingIndex === index}
-              className="mt-3 w-full rounded-lg bg-black py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="btn btn-primary mt-3 w-full"
             >
               {savingIndex === index ? 'Speichert...' : 'Als Rezept speichern'}
             </button>

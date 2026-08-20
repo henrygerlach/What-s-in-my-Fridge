@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { PeriodTotals } from '../lib/foodStats'
 
-const CONSUMED_COLOR = '#059669'
-const DISCARDED_COLOR = '#dc2626'
+const CONSUMED_COLOR = '#2c7a4d'
+const DISCARDED_COLOR = '#ad3629'
 
 const WIDTH = 320
 const HEIGHT = 140
@@ -35,7 +35,7 @@ export default function ConsumptionTrendChart({ data }: { data: PeriodTotals[] }
 
   return (
     <div>
-      <div className="flex items-center gap-4 text-xs text-gray-500">
+      <div className="flex items-center gap-4 text-xs text-ink-muted">
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CONSUMED_COLOR }} />
           Aufgebraucht
@@ -52,10 +52,10 @@ export default function ConsumptionTrendChart({ data }: { data: PeriodTotals[] }
           y1={chartHeight}
           x2={WIDTH}
           y2={chartHeight}
-          stroke="#e5e7eb"
+          stroke="var(--color-rule)"
           strokeWidth={1}
         />
-        <text x={0} y={8} className="fill-gray-400" fontSize={8}>
+        <text x={0} y={8} className="fill-ink-faint" fontSize={8}>
           {max}
         </text>
 
@@ -107,7 +107,7 @@ export default function ConsumptionTrendChart({ data }: { data: PeriodTotals[] }
                   y={chartHeight - consumedHeight - discardedHeight - (hasGap ? BAR_GAP : 0) - 3}
                   textAnchor="middle"
                   fontSize={8}
-                  className="fill-gray-500"
+                  className="fill-ink-muted"
                 >
                   {total}
                 </text>
@@ -117,7 +117,7 @@ export default function ConsumptionTrendChart({ data }: { data: PeriodTotals[] }
                 y={HEIGHT - 3}
                 textAnchor="middle"
                 fontSize={8}
-                className={selected === i ? 'fill-gray-900 font-medium' : 'fill-gray-400'}
+                className={selected === i ? 'fill-ink font-medium' : 'fill-ink-faint'}
               >
                 {bucket.label}
               </text>
@@ -126,7 +126,7 @@ export default function ConsumptionTrendChart({ data }: { data: PeriodTotals[] }
         })}
       </svg>
 
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-2 text-xs text-ink-muted">
         {active
           ? `Ab ${active.label}: ${active.consumed} aufgebraucht, ${active.discarded} weggeworfen`
           : 'Zeitraum antippen für Details'}

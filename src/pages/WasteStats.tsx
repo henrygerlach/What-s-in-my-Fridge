@@ -13,7 +13,7 @@ import {
 } from '../lib/foodStats'
 import { useRealtimeRefresh } from '../lib/useRealtimeRefresh'
 import { formatRelativeTime } from '../lib/relativeTime'
-import BackLink from '../components/BackLink'
+import PageHeader from '../components/PageHeader'
 import ConsumptionTrendChart from '../components/ConsumptionTrendChart'
 
 const WINDOW_DAYS = 30
@@ -23,15 +23,15 @@ function BarRow({ label, value, maxValue, suffix = '' }: { label: string; value:
   const width = maxValue > 0 ? Math.max((value / maxValue) * 100, 4) : 0
   return (
     <li>
-      <div className="flex items-center justify-between text-sm">
-        <span className="min-w-0 truncate text-gray-900">{label}</span>
-        <span className="shrink-0 text-xs text-gray-500">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span className="min-w-0 truncate text-ink">{label}</span>
+        <span className="measure shrink-0">
           {value}
           {suffix}
         </span>
       </div>
-      <div className="mt-1 h-1.5 rounded-full bg-gray-100">
-        <div className="h-1.5 rounded-full bg-gray-900" style={{ width: `${width}%` }} />
+      <div className="mt-1 h-1.5 rounded-full bg-shelf">
+        <div className="h-1.5 rounded-full bg-ink" style={{ width: `${width}%` }} />
       </div>
     </li>
   )
@@ -47,10 +47,10 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <section className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-        {subtitle && <span className="text-xs text-gray-400">{subtitle}</span>}
+    <section>
+      <div className="flex items-center gap-2">
+        <h2 className="shelf-label flex-1">{title}</h2>
+        {subtitle && <span className="measure shrink-0">{subtitle}</span>}
       </div>
       <div className="mt-3 flex flex-col gap-3">{children}</div>
     </section>
@@ -59,9 +59,9 @@ function Section({
 
 function SubsectionCard({ title, children }: { title?: string; children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3">
-      {title && <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</h3>}
-      <div className={title ? 'mt-2' : ''}>{children}</div>
+    <div className="card p-3">
+      {title && <h3 className="shelf-label">{title}</h3>}
+      <div className={title ? 'mt-3' : ''}>{children}</div>
     </div>
   )
 }
@@ -107,33 +107,30 @@ export default function WasteStats() {
   const noData = total === 0 && cookEntries.length === 0
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-2">
-        <BackLink to="/" />
-        <h1 className="text-xl font-semibold">Statistik</h1>
-      </div>
+    <div className="page">
+      <PageHeader title="Statistik" back="/" />
 
       {loading ? (
-        <p className="mt-6 text-sm text-gray-500">Lädt...</p>
+        <p className="mt-8 text-center text-sm text-ink-faint">Lädt...</p>
       ) : noData ? (
-        <p className="mt-6 text-sm text-gray-500">
-          Noch keine Daten. Wird erfasst, sobald Artikel verbraucht, weggeworfen oder Rezepte gekocht werden.
+        <p className="mt-8 text-center text-sm text-ink-muted">
+          Noch keine Daten. Sie entstehen, sobald du Artikel verbrauchst, wegwirfst oder ein Rezept kochst.
         </p>
       ) : (
         <Section title="Verbrauch" subtitle={`Letzte ${WINDOW_DAYS} Tage`}>
           {total > 0 && (
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-gray-200 bg-white p-3 text-center">
-                <p className="text-xl font-semibold text-gray-900">{consumedCount}</p>
-                <p className="text-xs text-gray-500">Aufgebraucht</p>
+              <div className="card p-3 text-center">
+                <p className="stat text-full">{consumedCount}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">Aufgebraucht</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-3 text-center">
-                <p className="text-xl font-semibold text-gray-900">{discardedCount}</p>
-                <p className="text-xs text-gray-500">Weggeworfen</p>
+              <div className="card p-3 text-center">
+                <p className="stat text-none">{discardedCount}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">Weggeworfen</p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-3 text-center">
-                <p className="text-xl font-semibold text-gray-900">{wasteRate}%</p>
-                <p className="text-xs text-gray-500">Verschwendung</p>
+              <div className="card p-3 text-center">
+                <p className="stat">{wasteRate}%</p>
+                <p className="mt-0.5 text-xs text-ink-muted">Verschwendung</p>
               </div>
             </div>
           )}
@@ -173,15 +170,15 @@ export default function WasteStats() {
           {(avgDays != null || topWastedCategories.length > 0) && (
             <div className="grid grid-cols-2 gap-2">
               {avgDays != null && (
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <p className="text-xl font-semibold text-gray-900">{avgDays.toFixed(1)}</p>
-                  <p className="text-xs text-gray-500">Ø Tage bis zur Verwendung</p>
+                <div className="card p-3">
+                  <p className="stat">{avgDays.toFixed(1)}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">Ø Tage bis zur Verwendung</p>
                 </div>
               )}
               {topWastedCategories.length > 0 && (
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{topWastedCategories[0].category}</p>
-                  <p className="text-xs text-gray-500">meistverschwendete Kategorie</p>
+                <div className="card p-3">
+                  <p className="truncate text-base font-bold text-ink">{topWastedCategories[0].category}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">meistverschwendete Kategorie</p>
                 </div>
               )}
             </div>
@@ -189,14 +186,14 @@ export default function WasteStats() {
 
           {discardedEntries.length > 0 && (
             <SubsectionCard title="Zuletzt weggeworfen">
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-rule">
                 {discardedEntries.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between py-2">
-                    <span className="min-w-0 truncate text-sm text-gray-900">
+                  <li key={entry.id} className="flex items-center justify-between gap-2 py-2">
+                    <span className="min-w-0 truncate text-sm text-ink">
                       {entry.name}
                       {entry.quantity ? ` (${entry.quantity}${entry.unit ? ` ${entry.unit}` : ''})` : ''}
                     </span>
-                    <span className="shrink-0 text-xs text-gray-400">{formatRelativeTime(entry.logged_at)}</span>
+                    <span className="measure shrink-0">{formatRelativeTime(entry.logged_at)}</span>
                   </li>
                 ))}
               </ul>

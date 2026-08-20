@@ -62,8 +62,10 @@ export default function BarcodeScanner({ onScan }: BarcodeScannerProps) {
 
   return (
     <div>
-      <div id={containerId} className="overflow-hidden rounded-lg" />
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <div id={containerId} className="overflow-hidden rounded-xl border border-rule bg-ink" />
+      {error && (
+        <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>
+      )}
     </div>
   )
 }

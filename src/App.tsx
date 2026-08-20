@@ -16,7 +16,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <div className="min-h-svh pb-16">
+        <div className="min-h-svh">
           <Routes>
             <Route path="/" element={<Inventory />} />
             <Route path="/add" element={<AddItem />} />

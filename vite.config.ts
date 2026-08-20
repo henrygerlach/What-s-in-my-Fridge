@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
           short_name: 'Fridge',
           description:
             'Vorrat im Blick behalten, Rezepte abgleichen und LLM-Vorschläge aus vorhandenen Zutaten erhalten.',
-          theme_color: '#863bff',
-          background_color: '#ede6ff',
+          theme_color: '#f1f4f3',
+          background_color: '#f1f4f3',
           display: 'standalone',
           orientation: 'portrait',
           start_url: '/',

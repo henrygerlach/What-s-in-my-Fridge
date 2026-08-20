@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { computeStockDeductions, getMissingIngredients, isIngredientAvailable } from '../lib/stock'
@@ -10,7 +10,9 @@ import { splitInstructionSteps } from '../lib/instructions'
 import { logCookedRecipe } from '../lib/cookLog'
 import { logConsumption } from '../lib/consumptionLog'
 import { estimateNutrition } from '../lib/nutrition'
-import BackLink from '../components/BackLink'
+import { useClickOutside } from '../lib/useClickOutside'
+import PageHeader from '../components/PageHeader'
+import AvailabilityMeter from '../components/AvailabilityMeter'
 import type { FoodItem, Recipe, RecipeIngredient } from '../types'
 
 export default function RecipeDetail() {
@@ -28,7 +30,11 @@ export default function RecipeDetail() {
   const [displayInstructions, setDisplayInstructions] = useState('')
   const [scaling, setScaling] = useState(false)
   const [estimatingNutrition, setEstimatingNutrition] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const showToast = useToast()
+
+  useClickOutside(menuRef, menuOpen, () => setMenuOpen(false))
 
   // Reloading the recipe itself (e.g. edited on another device) must not
   // reset `cookPortions` once the user has already opened this page —
@@ -246,81 +252,100 @@ export default function RecipeDetail() {
     })
   }
 
-  if (loading) return <div className="p-4 text-sm text-gray-500">Lädt...</div>
-  if (!recipe) return <div className="p-4 text-sm text-gray-500">Rezept nicht gefunden.</div>
+  if (loading) return <div className="page text-sm text-ink-faint">Lädt...</div>
+  if (!recipe) return <div className="page text-sm text-ink-faint">Rezept nicht gefunden.</div>
+
+  const availableCount = displayIngredients.filter((ingredient) =>
+    isIngredientAvailable(ingredient, foodItems),
+  ).length
 
   return (
-    <div className="p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <BackLink to="/recipes" />
-          <h1 className="min-w-0 truncate text-xl font-semibold">{recipe.title}</h1>
-          {recipe.category && (
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{recipe.category}</span>
-          )}
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Link
-            to={`/recipes/${recipe.id}/edit`}
-            className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700"
-          >
-            Bearbeiten
-          </Link>
+    <div className="page">
+      <PageHeader title={recipe.title} back="/recipes">
+        <div ref={menuOpen ? menuRef : undefined} className="relative">
           <button
             type="button"
-            onClick={handleDelete}
-            className="rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-red-600"
+            onClick={() => setMenuOpen((current) => !current)}
+            className="btn-icon border border-rule bg-surface text-ink-muted"
+            aria-label="Optionen"
+            aria-expanded={menuOpen}
           >
-            Löschen
+            ⋮
           </button>
+          {menuOpen && (
+            <div className="popover w-44 p-1">
+              <Link to={`/recipes/${recipe.id}/edit`} className="menu-item">
+                Bearbeiten
+              </Link>
+              <button type="button" onClick={handleDelete} className="menu-item w-full text-left text-danger">
+                Löschen
+              </button>
+            </div>
+          )}
         </div>
-      </div>
-      {(recipe.tags ?? []).length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+      </PageHeader>
+
+      {recipe.photo_url && (
+        <img src={recipe.photo_url} alt="" className="mb-3 aspect-[16/10] w-full rounded-xl object-cover" />
+      )}
+
+      {(recipe.category || (recipe.tags ?? []).length > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {recipe.category && <span className="tag border-ink/20 bg-ink/5 text-ink">{recipe.category}</span>}
           {(recipe.tags ?? []).map((tag) => (
-            <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+            <span key={tag} className="tag">
               {tag}
             </span>
           ))}
         </div>
       )}
-      {recipe.photo_url && (
-        <img src={recipe.photo_url} alt={recipe.title} className="mt-3 w-full rounded-lg object-cover" />
-      )}
 
-      <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
-        <span>Ich koche für</span>
-        <button
-          type="button"
-          onClick={() => adjustPortions(-1)}
-          disabled={scaling}
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 disabled:opacity-50"
-          aria-label="Weniger Portionen"
-        >
-          −
-        </button>
-        <span className="w-6 text-center font-medium text-gray-900">{cookPortions ?? '–'}</span>
-        <button
-          type="button"
-          onClick={() => adjustPortions(1)}
-          disabled={scaling}
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-700 disabled:opacity-50"
-          aria-label="Mehr Portionen"
-        >
-          +
-        </button>
-        <span>Portionen{recipe.portions ? ` (Rezept für ${recipe.portions})` : ''}</span>
-        {scaling && <span className="text-xs text-gray-400">wird angepasst...</span>}
+      {/* Cooking for a different number of people is the one thing that
+          rewrites this whole page, so it sits above everything it changes. */}
+      <div className="card mt-3 flex items-center justify-between gap-3 p-3">
+        <div className="min-w-0">
+          <p className="shelf-label">Ich koche für</p>
+          <p className="mt-1 truncate text-xs text-ink-muted">
+            {recipe.portions ? `Rezept für ${recipe.portions} Portionen` : 'Portionen im Rezept nicht angegeben'}
+            {scaling && <span className="ml-1 text-ink-faint">· wird angepasst...</span>}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => adjustPortions(-1)}
+            disabled={scaling}
+            className="btn-icon h-10 w-10 border border-rule bg-surface text-ink"
+            aria-label="Weniger Portionen"
+          >
+            −
+          </button>
+          <span
+            className="w-8 text-center text-lg font-semibold text-ink"
+            style={{ fontFamily: 'var(--font-mono)' }}
+            aria-live="polite"
+          >
+            {cookPortions ?? '–'}
+          </span>
+          <button
+            type="button"
+            onClick={() => adjustPortions(1)}
+            disabled={scaling}
+            className="btn-icon h-10 w-10 border border-rule bg-surface text-ink"
+            aria-label="Mehr Portionen"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       {recipe.kcal_per_portion != null ? (
-        <p className="mt-2 text-xs text-gray-500">
-          🔥 {Math.round(recipe.kcal_per_portion)} kcal
+        <p className="measure mt-2">
+          {Math.round(recipe.kcal_per_portion)} kcal
           {recipe.protein_g_per_portion != null && ` · ${Math.round(recipe.protein_g_per_portion)} g Eiweiß`}
           {recipe.fat_g_per_portion != null && ` · ${Math.round(recipe.fat_g_per_portion)} g Fett`}
           {recipe.carbs_g_per_portion != null && ` · ${Math.round(recipe.carbs_g_per_portion)} g KH`}
-          {' '}
-          <span className="text-gray-400">(pro Portion, geschätzt)</span>
+          <span className="ml-1.5 font-sans text-xs text-ink-faint">pro Portion, geschätzt</span>
         </p>
       ) : (
         ingredients.length > 0 && (
@@ -328,54 +353,80 @@ export default function RecipeDetail() {
             type="button"
             onClick={handleEstimateNutrition}
             disabled={estimatingNutrition}
-            className="mt-2 text-xs font-medium text-blue-600 disabled:opacity-50"
+            className="btn btn-sm mt-1 px-0 text-ink-muted underline underline-offset-4"
           >
             {estimatingNutrition ? 'Schätzt Nährwerte...' : 'Nährwerte schätzen'}
           </button>
         )
       )}
 
-      <div className="mt-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700">Zutaten</h2>
-        <button type="button" onClick={handleAddAllMissing} className="text-xs font-medium text-blue-600">
-          Fehlende zur Einkaufsliste
-        </button>
+      <div className="mt-5 flex items-end justify-between gap-3">
+        <h2 className="shelf-label flex-1">Zutaten</h2>
+        <AvailabilityMeter available={availableCount} total={displayIngredients.length} />
       </div>
-      <ul className="mt-2 flex flex-col gap-2">
+      <ul className="mt-2 divide-y divide-rule">
         {displayIngredients.map((ingredient) => {
           const available = isIngredientAvailable(ingredient, foodItems)
           const onShoppingList = !available && isIngredientAvailable(ingredient, shoppingList)
           return (
-            <li key={ingredient.id} className="flex items-center justify-between text-sm">
-              <span className={available ? 'text-gray-900' : 'text-gray-400'}>
-                {available ? '✓' : '✗'} {ingredient.name}
-                {ingredient.quantity
-                  ? ` (${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''})`
-                  : ''}
+            <li key={ingredient.id} className="flex items-center justify-between gap-2 py-2.5">
+              <span className="flex min-w-0 items-center gap-2.5">
+                {/* Same mark as one segment of the availability meter above. */}
+                <span
+                  aria-hidden
+                  className={`h-2.5 w-2.5 shrink-0 rounded-xs ${available ? 'bg-full' : 'border border-rule bg-shelf'}`}
+                />
+                <span className={`min-w-0 truncate text-sm ${available ? 'text-ink' : 'text-ink-faint'}`}>
+                  {ingredient.name}
+                </span>
+                {ingredient.quantity != null && (
+                  <span className="measure shrink-0">
+                    {ingredient.quantity}
+                    {ingredient.unit ? ` ${ingredient.unit}` : ''}
+                  </span>
+                )}
               </span>
               {!available && (
-                <div className="flex items-center gap-2">
-                  {onShoppingList && <span className="text-xs text-gray-400">schon auf Liste</span>}
-                  <button
-                    type="button"
-                    onClick={() => handleAddMissing(ingredient)}
-                    className="text-xs font-medium text-blue-600"
-                  >
-                    Zur Liste
-                  </button>
-                </div>
+                <span className="flex shrink-0 items-center gap-2">
+                  {onShoppingList ? (
+                    <span className="text-xs text-ink-faint">schon auf der Liste</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleAddMissing(ingredient)}
+                      className="btn btn-outline btn-sm"
+                    >
+                      + Liste
+                    </button>
+                  )}
+                </span>
               )}
             </li>
           )
         })}
       </ul>
+      {availableCount < displayIngredients.length && (
+        <button type="button" onClick={handleAddAllMissing} className="btn btn-quiet btn-sm mt-2 w-full">
+          Alle fehlenden zur Einkaufsliste
+        </button>
+      )}
 
-      <h2 className="mt-4 text-sm font-semibold text-gray-700">Zubereitung</h2>
-      <ol className="mt-2 flex flex-col gap-2">
+      <h2 className="shelf-label mt-6">Zubereitung</h2>
+      {/* Steps are a real sequence — the numbers carry order the cook needs,
+          and the text is set larger than the rest of the app because it is
+          read at arm's length from a worktop. */}
+      <ol className="mt-3 flex flex-col gap-4">
         {splitInstructionSteps(displayInstructions).map((step, index) => (
-          <li key={index} className="flex gap-2 text-sm text-gray-700">
-            <span className="text-gray-400">{index + 1}.</span>
-            <span className="whitespace-pre-wrap">{step.replace(/^\d+\.\s*/, '')}</span>
+          <li key={index} className="flex gap-3">
+            <span
+              className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white"
+              style={{ fontFamily: 'var(--font-mono)' }}
+            >
+              {index + 1}
+            </span>
+            <span className="whitespace-pre-wrap text-base leading-relaxed text-ink">
+              {step.replace(/^\d+\.\s*/, '')}
+            </span>
           </li>
         ))}
       </ol>
@@ -384,10 +435,15 @@ export default function RecipeDetail() {
         type="button"
         onClick={handleCookRecipe}
         disabled={!allAvailable}
-        className="mt-6 w-full rounded-lg bg-black py-3 text-sm font-semibold text-white disabled:opacity-40"
+        className="btn btn-primary mt-8 w-full"
       >
         Gekocht – Zutaten vom Bestand abziehen
       </button>
+      {!allAvailable && (
+        <p className="mt-2 text-center text-xs text-ink-faint">
+          Erst abziehbar, wenn alle Zutaten im Inventar sind.
+        </p>
+      )}
     </div>
   )
 }

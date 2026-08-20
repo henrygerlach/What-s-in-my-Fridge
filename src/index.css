@@ -1,5 +1,246 @@
 @import 'tailwindcss';
 
-body {
-  margin: 0;
+/*
+ * "Vorratskammer" — the design system for What's in my Fridge.
+ *
+ * Three ideas carry the whole app:
+ *   1. Lists are shelves. Category headers are set as shelf-edge labels:
+ *      condensed caps on a ruled bar, the way a well-kept pantry is labelled.
+ *   2. Quantities are measurements. Every number the app knows (200 g, 3/7,
+ *      12×) is set in the mono face, so measures line up down a column and
+ *      read differently from prose.
+ *   3. Storage is a cold chain. Vorrat / Kühlschrank / Gefrierfach get one
+ *      hue ramp from ambient to deep-freeze; hue is never spent on decoration
+ *      so that a colour always means something.
+ */
+
+@theme {
+  /* Archivo is a variable font with a width axis: the display face runs
+     condensed, which is what makes German compounds ("Einkaufsliste",
+     "Konserven & Grundnahrungsmittel") fit a 360px phone without shrinking. */
+  --font-display: 'Archivo', 'Arial Narrow', system-ui, sans-serif;
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Enamel and porcelain: a cool, kitchen-hardware neutral, deliberately not
+     the warm cream that food apps default to. */
+  --color-ink: #12191b;
+  --color-ink-muted: #57646a;
+  --color-ink-faint: #87949b;
+  --color-porcelain: #f1f4f3;
+  --color-surface: #ffffff;
+  --color-rule: #dce2e1;
+  --color-shelf: #e5eae8;
+
+  /* Cold chain — one ramp, ambient to deep freeze. */
+  --color-pantry: #857d6a;
+  --color-fridge: #26707f;
+  --color-freezer: #33509b;
+
+  /* Availability — hue is reserved for "can I cook this?". */
+  --color-full: #2c7a4d;
+  --color-partial: #b06a15;
+  --color-none: #ad3629;
+  --color-danger: #ad3629;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-porcelain);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* Tabular figures everywhere: quantities sit in lists that are scanned
+       vertically, so digits must not shift column as values change. */
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The whole app is German; the browser needs to hyphenate and speak it
+     as such. Long compounds are the reason hyphens are on at all. */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 82;
+    letter-spacing: -0.005em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* One focus treatment for the entire app, on every focusable thing.
+   Deliberately unlayered so it outranks the component classes below:
+   Tailwind's `transition-colors` includes outline-color, which would
+   otherwise fade the focus ring in instead of showing it at once. */
+:focus-visible {
+  outline: 2px solid var(--color-fridge);
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+}
+
+@layer components {
+  /* --- Page frame ------------------------------------------------------ */
+
+  /* Padded for the fixed bottom nav plus the iOS home indicator, so the last
+     row of a long list is never trapped underneath either. */
+  .page {
+    @apply mx-auto w-full max-w-screen-sm px-4 pt-3;
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  }
+
+  /* Actions stay reachable while scrolling a long inventory. */
+  .page-bar {
+    @apply sticky top-0 z-20 -mx-4 mb-3 flex items-center gap-2 border-b border-rule px-4 pb-2 pt-1;
+    background-color: color-mix(in srgb, var(--color-porcelain) 88%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .page-title {
+    @apply min-w-0 flex-1 truncate text-2xl font-bold text-ink;
+    font-variation-settings: 'wdth' 78;
+  }
+
+  /* --- Shelf label ----------------------------------------------------- */
+
+  /* The structural device of the app: a group header set like the label on
+     a pantry shelf edge. The rule runs to the end of the row so the label
+     reads as attached to the shelf, not floating above the list. */
+  .shelf-label {
+    @apply flex items-center gap-2 text-xs font-semibold uppercase text-ink-muted;
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 80;
+    letter-spacing: 0.09em;
+  }
+
+  .shelf-label::after {
+    content: '';
+    @apply h-px flex-1 bg-rule;
+  }
+
+  /* --- Surfaces -------------------------------------------------------- */
+
+  .card {
+    @apply rounded-xl border border-rule bg-surface;
+  }
+
+  .popover {
+    @apply absolute right-0 top-full z-30 mt-1 rounded-xl border border-rule bg-surface p-2 shadow-xl;
+  }
+
+  /* --- Controls -------------------------------------------------------- */
+
+  /* min-h-11 is 44px: the smallest comfortable target for a thumb on a
+     phone held in a kitchen. */
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-semibold
+           transition-colors disabled:cursor-not-allowed disabled:opacity-45;
+  }
+
+  .btn-primary {
+    @apply bg-ink text-white hover:bg-ink/90;
+  }
+
+  /* Translucent ink reads as a solid mid-grey button that still looks
+     pressable; a flat shelf fill reads as unavailable. */
+  .btn-primary:disabled {
+    @apply bg-shelf text-ink-faint;
+  }
+
+  .btn-outline {
+    @apply border border-rule bg-surface text-ink hover:bg-shelf;
+  }
+
+  .btn-quiet {
+    @apply bg-shelf text-ink-muted hover:text-ink;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white;
+  }
+
+  /* Compact variant for row-level actions, still 40px tall. */
+  .btn-sm {
+    @apply min-h-10 rounded-full px-2.5 text-xs;
+  }
+
+  /* Icon-only round button. */
+  .btn-icon {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg
+           transition-colors disabled:opacity-45;
+  }
+
+  .field {
+    @apply min-h-11 w-full rounded-lg border border-rule bg-surface px-3 py-2 text-sm text-ink
+           placeholder:text-ink-faint disabled:opacity-50;
+  }
+
+  /* Numeric inputs read as measurements, like the values they hold. */
+  .field-num {
+    @apply min-h-11 w-full rounded-lg border border-rule bg-surface px-2 py-2 text-center text-sm text-ink
+           placeholder:text-ink-faint disabled:opacity-50;
+    font-family: var(--font-mono);
+  }
+
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wider text-ink-muted;
+  }
+
+  /* Filter/tag pill. */
+  .chip {
+    @apply inline-flex min-h-9 items-center whitespace-nowrap rounded-full border border-rule bg-surface
+           px-3 text-sm text-ink-muted transition-colors hover:text-ink disabled:opacity-50;
+  }
+
+  .chip-on {
+    @apply border-ink bg-ink text-white hover:text-white;
+  }
+
+  /* Row inside a popover menu. */
+  .menu-item {
+    @apply block min-h-11 rounded-lg px-3 py-2.5 text-sm text-ink transition-colors hover:bg-shelf;
+  }
+
+  /* Read-only descriptive tag, never interactive. */
+  .tag {
+    @apply inline-flex items-center rounded border border-rule bg-shelf px-1.5 py-0.5 text-xs text-ink-muted;
+  }
+
+  /* File pickers for receipts, fridge photos and recipe screenshots. */
+  .dropzone {
+    @apply flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed
+           border-rule bg-surface px-4 py-10 text-center text-sm text-ink-muted transition-colors
+           hover:border-ink-faint hover:text-ink;
+  }
+
+  /* --- Measurements ---------------------------------------------------- */
+
+  /* Any value the app measured or counted. */
+  .measure {
+    font-family: var(--font-mono);
+    @apply text-xs tracking-tight text-ink-muted;
+    font-feature-settings: 'zero' 1;
+  }
+
+  /* Headline figure on a stat tile. */
+  .stat {
+    @apply text-2xl font-bold text-ink;
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 80;
+  }
+
+  /* --- Cold chain ------------------------------------------------------ */
+
+  .dot {
+    @apply inline-block h-1.5 w-1.5 shrink-0 rounded-full align-middle;
+  }
 }

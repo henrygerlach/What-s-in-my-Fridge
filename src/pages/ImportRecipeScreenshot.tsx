@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { resizeImageToBase64, UnsupportedHeicError } from '../lib/image'
-import BackLink from '../components/BackLink'
+import PageHeader from '../components/PageHeader'
 
 export default function ImportRecipeScreenshot() {
   const [loading, setLoading] = useState(false)
@@ -41,27 +41,20 @@ export default function ImportRecipeScreenshot() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-2">
-        <BackLink to="/recipes" />
-        <h1 className="text-xl font-semibold">Screenshot importieren</h1>
-      </div>
-      <p className="mt-2 text-sm text-gray-500">
+    <div className="page">
+      <PageHeader title="Screenshot importieren" back="/recipes" />
+      <p className="text-sm text-ink-muted">
         Lade einen Screenshot eines Rezepts hoch, z. B. von Instagram oder einer Website. Die erkannten Angaben
         kannst du danach noch anpassen, bevor du speicherst.
       </p>
 
-      <label className="mt-4 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
-        <input
-          type="file"
-          accept="image/*,.heic,.heif"
-          onChange={handleFile}
-          disabled={loading}
-          className="hidden"
-        />
+      <label className="dropzone mt-4">
+        <input type="file" accept="image/*,.heic,.heif" onChange={handleFile} disabled={loading} className="hidden" />
         {loading ? 'Rezept wird gelesen...' : 'Screenshot auswählen'}
       </label>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</p>
+      )}
     </div>
   )
 }

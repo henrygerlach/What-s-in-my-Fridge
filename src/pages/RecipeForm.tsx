@@ -8,7 +8,7 @@ import type { TagGroup } from '../lib/constants'
 import { parseDecimal } from '../lib/parseDecimal'
 import { guessRecipeTags } from '../lib/recipeTags'
 import { estimateNutrition } from '../lib/nutrition'
-import BackLink from '../components/BackLink'
+import PageHeader from '../components/PageHeader'
 
 interface IngredientRow {
   name: string
@@ -283,34 +283,40 @@ export default function RecipeForm() {
   }
 
   if (loading) {
-    return <div className="p-4 text-sm text-gray-500">Lädt...</div>
+    return <div className="page text-sm text-ink-faint">Lädt...</div>
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center gap-2">
-        <BackLink to={isEdit && id ? `/recipes/${id}` : '/recipes'} />
-        <h1 className="text-xl font-semibold">{isEdit ? 'Rezept bearbeiten' : 'Neues Rezept'}</h1>
-      </div>
+    <div className="page">
+      <PageHeader
+        title={isEdit ? 'Rezept bearbeiten' : 'Neues Rezept'}
+        back={isEdit && id ? `/recipes/${id}` : '/recipes'}
+      />
 
-      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="text-sm text-gray-600">Titel *</label>
+          <label htmlFor="recipe-title" className="label">
+            Titel
+          </label>
           <input
+            id="recipe-title"
             required
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="field mt-1.5"
           />
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">Kategorie</label>
+          <label htmlFor="recipe-category" className="label">
+            Kategorie
+          </label>
           <select
+            id="recipe-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+            className="field mt-1.5"
           >
             <option value="">– keine Kategorie –</option>
             {RECIPE_CATEGORY_OPTIONS.map((option) => (
@@ -322,21 +328,19 @@ export default function RecipeForm() {
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">
-            Tags{guessingTags && <span className="ml-1 text-gray-400">wird vorgeschlagen...</span>}
-          </label>
+          <span className="label">
+            Tags
+            {guessingTags && <span className="ml-1.5 font-normal normal-case text-ink-faint">wird vorgeschlagen...</span>}
+          </span>
           {tags.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1.5">
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
               {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
-                >
+                <span key={tag} className="tag gap-1 pr-1">
                   {tag}
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="text-gray-400"
+                    className="px-1 text-ink-faint hover:text-danger"
                     aria-label={`Tag ${tag} entfernen`}
                   >
                     ×
@@ -345,20 +349,19 @@ export default function RecipeForm() {
               ))}
             </div>
           )}
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-2 flex flex-col gap-2.5">
             {TAG_GROUPS.map((group) => (
               <div key={group.label}>
-                <p className="text-xs text-gray-400">{group.label}</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
+                <p className="shelf-label">{group.label}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {group.options.map((option) => (
                     <button
                       key={option}
                       type="button"
                       disabled={guessingTags}
                       onClick={() => toggleTag(option, group)}
-                      className={`rounded-full px-2.5 py-1 text-xs disabled:opacity-50 ${
-                        tags.includes(option) ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-                      }`}
+                      aria-pressed={tags.includes(option)}
+                      className={`chip ${tags.includes(option) ? 'chip-on' : ''}`}
                     >
                       {option}
                     </button>
@@ -370,42 +373,47 @@ export default function RecipeForm() {
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">Portionen</label>
+          <label htmlFor="recipe-portions" className="label">
+            Portionen
+          </label>
           <input
+            id="recipe-portions"
             type="number"
             inputMode="numeric"
             min={1}
             value={portions}
             onChange={(e) => setPortions(e.target.value)}
-            className="mt-1 w-24 rounded-lg border border-gray-300 px-3 py-2"
+            className="field-num mt-1.5 w-24"
           />
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">Zutaten</label>
-          <div className="mt-1 flex flex-col gap-2">
+          <span className="label">Zutaten</span>
+          <div className="mt-1.5 flex flex-col gap-2">
             {ingredients.map((row, index) => (
-              <div key={index} className="flex flex-col gap-1.5 rounded-lg border border-gray-200 p-2">
+              <div key={index} className="card flex flex-col gap-2 p-2">
                 <div className="flex gap-2">
                   <input
                     placeholder="Name"
                     value={row.name}
                     onChange={(e) => updateIngredient(index, { name: e.target.value })}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
+                    aria-label="Zutat"
+                    className="field min-w-0 flex-1"
                   />
                   <input
                     placeholder="Menge"
                     inputMode="decimal"
                     value={row.quantity}
                     onChange={(e) => updateIngredient(index, { quantity: e.target.value })}
-                    className={`w-20 rounded-lg border px-3 py-2 ${
-                      invalidQuantityRows.has(index) ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    aria-label="Menge"
+                    aria-invalid={invalidQuantityRows.has(index)}
+                    className={`field-num w-20 ${invalidQuantityRows.has(index) ? 'border-danger' : ''}`}
                   />
                   <select
                     value={row.unit}
                     onChange={(e) => updateIngredient(index, { unit: e.target.value })}
-                    className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-2"
+                    aria-label="Einheit"
+                    className="field w-24 px-2"
                   >
                     <option value="">–</option>
                     {UNIT_OPTIONS.map((option) => (
@@ -417,36 +425,34 @@ export default function RecipeForm() {
                   <button
                     type="button"
                     onClick={() => removeIngredient(index)}
-                    className="px-2 text-gray-400"
+                    className="btn-icon h-11 w-7 text-lg text-ink-faint hover:text-danger"
                     aria-label="Zutat entfernen"
                   >
                     ×
                   </button>
                 </div>
                 {invalidQuantityRows.has(index) && (
-                  <p className="pl-1 text-xs text-red-600">
+                  <p className="text-xs text-danger">
                     Ungültige Menge – bitte mit Punkt oder Komma eingeben (z. B. 1.5 oder 1,5)
                   </p>
                 )}
                 {CONTAINER_UNITS.includes(row.unit) && (
-                  <div className="flex items-center gap-2 pl-1">
-                    <span className="text-xs text-gray-500">
-                      1 {row.unit} entspricht ca.
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-ink-muted">1 {row.unit} entspricht ca.</span>
                     <input
-                      placeholder="z. B. 400"
+                      placeholder="400"
                       inputMode="decimal"
                       value={row.gramsPerUnit}
                       onChange={(e) => updateIngredient(index, { gramsPerUnit: e.target.value })}
-                      className={`w-20 rounded-lg border px-2 py-1 text-sm ${
-                        invalidGramsRows.has(index) ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      aria-label={`Gramm pro ${row.unit}`}
+                      aria-invalid={invalidGramsRows.has(index)}
+                      className={`field-num min-h-10 w-20 text-sm ${invalidGramsRows.has(index) ? 'border-danger' : ''}`}
                     />
-                    <span className="text-xs text-gray-500">g (optional)</span>
+                    <span className="text-xs text-ink-muted">g (optional)</span>
                   </div>
                 )}
                 {invalidGramsRows.has(index) && (
-                  <p className="pl-1 text-xs text-red-600">
+                  <p className="text-xs text-danger">
                     Ungültiger Wert – bitte mit Punkt oder Komma eingeben (z. B. 400 oder 1,5)
                   </p>
                 )}
@@ -456,40 +462,43 @@ export default function RecipeForm() {
           <button
             type="button"
             onClick={() => setIngredients((rows) => [...rows, emptyRow()])}
-            className="mt-2 text-sm font-medium text-blue-600"
+            className="btn btn-quiet btn-sm mt-2 w-full"
           >
             + Zutat hinzufügen
           </button>
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">Zubereitung</label>
+          <label htmlFor="recipe-instructions" className="label">
+            Zubereitung
+          </label>
           <textarea
+            id="recipe-instructions"
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
             rows={6}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="field mt-1.5 leading-relaxed"
           />
         </div>
 
         <div>
-          <label className="text-sm text-gray-600">Foto (optional)</label>
+          <label htmlFor="recipe-photo" className="label">
+            Foto (optional)
+          </label>
           {existingPhotoUrl && !photo && (
-            <img src={existingPhotoUrl} alt="Aktuelles Foto" className="mt-1 mb-2 w-full rounded-lg object-cover" />
+            <img src={existingPhotoUrl} alt="" className="mt-1.5 mb-2 aspect-[16/10] w-full rounded-xl object-cover" />
           )}
           <input
+            id="recipe-photo"
             type="file"
             accept="image/*"
             onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
-            className="mt-1 w-full text-sm"
+            className="mt-1.5 w-full text-sm text-ink-muted file:mr-3 file:min-h-10 file:rounded-lg file:border-0
+                       file:bg-shelf file:px-3 file:text-sm file:font-medium file:text-ink"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={saving || !title.trim()}
-          className="mt-2 rounded-lg bg-black py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
+        <button type="submit" disabled={saving || !title.trim()} className="btn btn-primary mt-1">
           {saving ? 'Speichert...' : 'Speichern'}
         </button>
       </form>

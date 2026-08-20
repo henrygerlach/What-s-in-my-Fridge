@@ -4,20 +4,21 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/ToastContext'
 import { fetchProductByBarcode } from '../lib/openFoodFacts'
-import { CATEGORY_OPTIONS, UNIT_OPTIONS, CONTAINER_UNITS, guessCategory } from '../lib/constants'
+import {
+  CATEGORY_OPTIONS,
+  UNIT_OPTIONS,
+  CONTAINER_UNITS,
+  LOCATION_OPTIONS,
+  LOCATION_DOT_CLASS,
+  guessCategory,
+} from '../lib/constants'
 import { classifyItem } from '../lib/classify'
 import { saveFoodItem } from '../lib/foodItems'
 import { resizeImageToBase64, UnsupportedHeicError } from '../lib/image'
 import BarcodeScanner from '../components/BarcodeScanner'
-import BackLink from '../components/BackLink'
+import PageHeader from '../components/PageHeader'
 import type { InventorySource } from '../lib/inventoryLog'
 import type { Location } from '../types'
-
-const locationOptions: Array<{ value: Location; label: string }> = [
-  { value: 'fridge', label: 'Kühlschrank' },
-  { value: 'pantry', label: 'Vorrat' },
-  { value: 'freezer', label: 'Gefrierfach' },
-]
 
 interface ScannedItem {
   name: string
@@ -256,56 +257,44 @@ export default function AddItem() {
     setScannedItems([])
   }
 
-  return (
-    <div className="p-4">
-      <div className="flex items-center gap-2">
-        <BackLink to="/" />
-        <h1 className="text-xl font-semibold">Item hinzufügen</h1>
-      </div>
+  const modes: Array<{ value: 'manual' | 'scan' | 'receipt' | 'photo'; label: string }> = [
+    { value: 'manual', label: 'Manuell' },
+    { value: 'scan', label: 'Barcode' },
+    { value: 'receipt', label: 'Bon' },
+    { value: 'photo', label: 'Foto' },
+  ]
 
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        <button
-          type="button"
-          onClick={() => selectMode('manual')}
-          className={`rounded-full px-2 py-2 text-sm ${
-            mode === 'manual' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          Manuell
-        </button>
-        <button
-          type="button"
-          onClick={() => selectMode('scan')}
-          className={`rounded-full px-2 py-2 text-sm ${
-            mode === 'scan' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          Barcode
-        </button>
-        <button
-          type="button"
-          onClick={() => selectMode('receipt')}
-          className={`rounded-full px-2 py-2 text-sm ${
-            mode === 'receipt' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          Bon
-        </button>
-        <button
-          type="button"
-          onClick={() => selectMode('photo')}
-          className={`rounded-full px-2 py-2 text-sm ${
-            mode === 'photo' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
-          Foto
-        </button>
+  return (
+    <div className="page">
+      <PageHeader title="Artikel hinzufügen" back="/" />
+
+      {/* Four ways in, one row: the choice is made once per visit and then
+          gets out of the way. */}
+      <div role="tablist" aria-label="Eingabeart" className="flex rounded-xl border border-rule bg-surface p-1">
+        {modes.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="tab"
+            aria-selected={mode === option.value}
+            onClick={() => selectMode(option.value)}
+            className={`min-h-10 flex-1 rounded-lg text-sm font-medium transition-colors ${
+              mode === option.value ? 'bg-ink text-white' : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {mode === 'scan' && (
         <div className="mt-4">
           <BarcodeScanner onScan={handleScan} />
-          {scanError && <p className="mt-2 text-sm text-red-600">{scanError}</p>}
+          {scanError && (
+            <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+              {scanError}
+            </p>
+          )}
         </div>
       )}
 
@@ -314,18 +303,16 @@ export default function AddItem() {
           {scannedItems.length === 0 ? (
             <div>
               {sessionAddedCount > 0 && (
-                <div className="mb-3 flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2 text-sm">
-                  <span className="text-gray-600">{sessionAddedCount} Artikel bereits hinzugefügt</span>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/')}
-                    className="font-semibold text-black"
-                  >
+                <div className="card mb-3 flex items-center justify-between gap-2 p-2 pl-3">
+                  <span className="text-sm text-ink-muted">
+                    <span className="measure text-ink">{sessionAddedCount}</span> Artikel hinzugefügt
+                  </span>
+                  <button type="button" onClick={() => navigate('/')} className="btn btn-primary btn-sm">
                     Fertig
                   </button>
                 </div>
               )}
-              <label className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+              <label className="dropzone">
                 <input
                   type="file"
                   accept="image/*,.heic,.heif"
@@ -335,41 +322,50 @@ export default function AddItem() {
                 />
                 {scanLoading ? 'Wird ausgewertet...' : SCAN_COPY[mode].prompt}
               </label>
-              {scanReadError && <p className="mt-2 text-sm text-red-600">{scanReadError}</p>}
+              {scanReadError && (
+                <p className="mt-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+                  {scanReadError}
+                </p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-gray-500">{scannedItems.length} Artikel erkannt – bitte prüfen:</p>
+              <p className="shelf-label">
+                <span className="measure text-ink">{scannedItems.length}</span> erkannt – bitte prüfen
+              </p>
               {scannedItems.map((item, index) => (
-                <div key={index} className="rounded-lg border border-gray-200 p-3">
+                <div key={index} className="card p-3">
                   <div className="flex items-center gap-2">
                     <input
                       value={item.name}
                       onChange={(e) => updateScannedItem(index, { name: e.target.value })}
-                      className="flex-1 border-b border-gray-200 pb-1 text-sm font-medium"
+                      aria-label="Name"
+                      className="min-h-10 flex-1 border-b border-rule pb-1 font-medium text-ink focus:border-ink"
                     />
                     <button
                       type="button"
                       onClick={() => removeScannedItem(index)}
-                      className="px-1 text-gray-400"
-                      aria-label="Artikel entfernen"
+                      className="btn-icon h-10 w-8 text-lg text-ink-faint hover:text-danger"
+                      aria-label={`${item.name} nicht übernehmen`}
                     >
                       ×
                     </button>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <input
                       type="number"
                       inputMode="decimal"
                       placeholder="Menge"
                       value={item.quantity}
                       onChange={(e) => updateScannedItem(index, { quantity: e.target.value })}
-                      className="rounded border border-gray-300 px-2 py-1 text-xs"
+                      aria-label="Menge"
+                      className="field-num min-h-10 text-xs"
                     />
                     <select
                       value={item.unit}
                       onChange={(e) => updateScannedItem(index, { unit: e.target.value })}
-                      className="rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                      aria-label="Einheit"
+                      className="field min-h-10 text-xs"
                     >
                       <option value="">–</option>
                       {UNIT_OPTIONS.map((option) => (
@@ -380,24 +376,24 @@ export default function AddItem() {
                     </select>
                     {CONTAINER_UNITS.includes(item.unit) && (
                       <div className="col-span-2 flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          1 {item.unit} entspricht ca.
-                        </span>
+                        <span className="text-xs text-ink-muted">1 {item.unit} entspricht ca.</span>
                         <input
                           type="number"
                           inputMode="decimal"
-                          placeholder="z. B. 400"
+                          placeholder="400"
                           value={item.gramsPerUnit}
                           onChange={(e) => updateScannedItem(index, { gramsPerUnit: e.target.value })}
-                          className="w-20 rounded border border-gray-300 px-2 py-1 text-xs"
+                          aria-label={`Gramm pro ${item.unit}`}
+                          className="field-num min-h-10 w-20 text-xs"
                         />
-                        <span className="text-xs text-gray-500">g</span>
+                        <span className="text-xs text-ink-muted">g</span>
                       </div>
                     )}
                     <select
                       value={item.category}
                       onChange={(e) => updateScannedItem(index, { category: e.target.value })}
-                      className="col-span-2 rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                      aria-label="Kategorie"
+                      className="field col-span-2 min-h-10 text-xs"
                     >
                       <option value="">– keine Kategorie –</option>
                       {CATEGORY_OPTIONS.map((option) => (
@@ -409,9 +405,10 @@ export default function AddItem() {
                     <select
                       value={item.location}
                       onChange={(e) => updateScannedItem(index, { location: e.target.value as Location })}
-                      className="col-span-2 rounded border border-gray-300 bg-white px-2 py-1 text-xs"
+                      aria-label="Ablageort"
+                      className="field col-span-2 min-h-10 text-xs"
                     >
-                      {locationOptions.map((option) => (
+                      {LOCATION_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -422,18 +419,14 @@ export default function AddItem() {
               ))}
 
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setScannedItems([])}
-                  className="flex-1 rounded-lg bg-gray-100 py-3 text-sm font-medium text-gray-600"
-                >
+                <button type="button" onClick={() => setScannedItems([])} className="btn btn-quiet flex-1">
                   Neues Foto
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveScannedItems}
                   disabled={scanSaving || scannedItems.length === 0}
-                  className="flex-[2] rounded-lg bg-black py-3 text-sm font-semibold text-white disabled:opacity-50"
+                  className="btn btn-primary flex-[2]"
                 >
                   {scanSaving ? 'Speichert...' : `${scannedItems.length} Artikel hinzufügen`}
                 </button>
@@ -444,16 +437,19 @@ export default function AddItem() {
       )}
 
       {mode === 'manual' && (
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
           <div>
-            <label className="text-sm text-gray-600">Name *</label>
+            <label htmlFor="item-name" className="label">
+              Name
+            </label>
             <input
+              id="item-name"
               required
               autoFocus
               list="existing-names"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              className="field mt-1.5"
             />
             <datalist id="existing-names">
               {existingNames.map((n) => (
@@ -463,14 +459,16 @@ export default function AddItem() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">
-              Kategorie{classifying && <span className="ml-1 text-gray-400">wird vorgeschlagen...</span>}
+            <label htmlFor="item-category" className="label">
+              Kategorie
+              {classifying && <span className="ml-1.5 font-normal normal-case text-ink-faint">wird vorgeschlagen...</span>}
             </label>
             <select
+              id="item-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={classifying}
-              className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 disabled:opacity-50"
+              className="field mt-1.5"
             >
               <option value="">– keine Kategorie –</option>
               {CATEGORY_OPTIONS.map((option) => (
@@ -480,28 +478,31 @@ export default function AddItem() {
               ))}
             </select>
             {scannedCategoryHint && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1.5 text-xs text-ink-muted">
                 Erkannt: „{scannedCategoryHint}“ – bitte passende Kategorie auswählen.
               </p>
             )}
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Ort</label>
-            <div className="mt-1 flex gap-2">
-              {locationOptions.map((option) => (
+            <span className="label">Ort</span>
+            <div className="mt-1.5 flex gap-2">
+              {LOCATION_OPTIONS.map((option) => (
                 <button
                   type="button"
                   key={option.value}
                   disabled={classifying}
+                  aria-pressed={location === option.value}
                   onClick={() => {
                     setLocation(option.value)
                     setLocationTouched(true)
                   }}
-                  className={`flex-1 rounded-lg px-3 py-2 text-sm disabled:opacity-50 ${
-                    location === option.value ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className={`btn flex-1 px-1 text-xs ${location === option.value ? 'btn-primary' : 'btn-outline'}`}
                 >
+                  <span
+                    className={`dot ${location === option.value ? 'bg-white' : LOCATION_DOT_CLASS[option.value]}`}
+                    aria-hidden
+                  />
                   {option.label}
                 </button>
               ))}
@@ -510,21 +511,27 @@ export default function AddItem() {
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-sm text-gray-600">Menge</label>
+              <label htmlFor="item-quantity" className="label">
+                Menge
+              </label>
               <input
+                id="item-quantity"
                 type="number"
                 inputMode="decimal"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                className="field-num mt-1.5"
               />
             </div>
             <div className="flex-1">
-              <label className="text-sm text-gray-600">Einheit</label>
+              <label htmlFor="item-unit" className="label">
+                Einheit
+              </label>
               <select
+                id="item-unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                className="field mt-1.5"
               >
                 <option value="">–</option>
                 {UNIT_OPTIONS.map((option) => (
@@ -538,29 +545,28 @@ export default function AddItem() {
 
           {CONTAINER_UNITS.includes(unit) && (
             <div>
-              <label className="text-sm text-gray-600">1 {unit} entspricht ca. (optional)</label>
-              <div className="mt-1 flex items-center gap-2">
+              <label htmlFor="grams-per-unit" className="label">
+                1 {unit} entspricht ca. (optional)
+              </label>
+              <div className="mt-1.5 flex items-center gap-2">
                 <input
+                  id="grams-per-unit"
                   type="number"
                   inputMode="decimal"
-                  placeholder="z. B. 400"
+                  placeholder="400"
                   value={gramsPerUnit}
                   onChange={(e) => setGramsPerUnit(e.target.value)}
-                  className="w-24 rounded-lg border border-gray-300 px-3 py-2"
+                  className="field-num w-24"
                 />
-                <span className="text-sm text-gray-500">g</span>
+                <span className="text-sm text-ink-muted">g</span>
               </div>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1.5 text-xs text-ink-faint">
                 Damit lässt sich diese Menge mit Rezepten in g/kg abgleichen.
               </p>
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={saving || !name.trim()}
-            className="mt-2 rounded-lg bg-black py-3 text-sm font-semibold text-white disabled:opacity-50"
-          >
+          <button type="submit" disabled={saving || !name.trim()} className="btn btn-primary mt-1">
             {saving ? 'Speichert...' : 'Speichern'}
           </button>
         </form>

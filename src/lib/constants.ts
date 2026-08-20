@@ -1,3 +1,26 @@
+import type { Location } from '../types'
+
+export const LOCATION_LABELS: Record<Location, string> = {
+  fridge: 'Kühlschrank',
+  pantry: 'Vorrat',
+  freezer: 'Gefrierfach',
+}
+
+export const LOCATION_OPTIONS: Array<{ value: Location; label: string }> = [
+  { value: 'fridge', label: LOCATION_LABELS.fridge },
+  { value: 'pantry', label: LOCATION_LABELS.pantry },
+  { value: 'freezer', label: LOCATION_LABELS.freezer },
+]
+
+// The cold chain, ambient to deep freeze. Storage location is the one item
+// property that never changes while an item sits there, so it earns a
+// permanent colour instead of a word repeated on every row.
+export const LOCATION_DOT_CLASS: Record<Location, string> = {
+  pantry: 'bg-pantry',
+  fridge: 'bg-fridge',
+  freezer: 'bg-freezer',
+}
+
 export const CATEGORY_OPTIONS = [
   'Obst & Gemüse',
   'Milchprodukte & Eier',
