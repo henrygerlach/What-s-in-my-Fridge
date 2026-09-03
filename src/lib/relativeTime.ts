@@ -18,8 +18,10 @@ export function formatRelativeTime(isoDate: string): string {
   const diffWeeks = Math.floor(diffDays / 7)
   if (diffWeeks < 5) return `vor ${diffWeeks} ${diffWeeks === 1 ? 'Woche' : 'Wochen'}`
 
+  // Gated on days, not on diffMonths < 12: floor(days/30) reaches 12 on day
+  // 360 while floor(days/365) is still 0, which rendered "vor 0 Jahren".
   const diffMonths = Math.floor(diffDays / 30)
-  if (diffMonths < 12) return `vor ${diffMonths} ${diffMonths === 1 ? 'Monat' : 'Monaten'}`
+  if (diffDays < 365) return `vor ${diffMonths} ${diffMonths === 1 ? 'Monat' : 'Monaten'}`
 
   const diffYears = Math.floor(diffDays / 365)
   return `vor ${diffYears} ${diffYears === 1 ? 'Jahr' : 'Jahren'}`

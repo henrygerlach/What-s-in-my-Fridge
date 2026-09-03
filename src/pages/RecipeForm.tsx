@@ -206,9 +206,9 @@ export default function RecipeForm() {
     let photoUrl = existingPhotoUrl
     if (photo) {
       const path = `${crypto.randomUUID()}-${photo.name}`
-      const { error: uploadError } = await supabase.storage.from('recipe-photos').upload(path, photo)
-      if (!uploadError) {
-        photoUrl = supabase.storage.from('recipe-photos').getPublicUrl(path).data.publicUrl
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('recipe-photos').upload(path, photo)
+      if (!uploadError && uploadData) {
+        photoUrl = supabase.storage.from('recipe-photos').getPublicUrl(uploadData.path).data.publicUrl
       }
     }
 

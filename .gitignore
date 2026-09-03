@@ -26,3 +26,9 @@ supabase/.temp
 *.njsproj
 *.sln
 *.sw?
+
+# Claude
+.claude/
+
+# Test coverage reports
+coverage/
