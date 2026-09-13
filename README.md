@@ -2,6 +2,17 @@
 
 A household food-inventory PWA that turns a photo of a supermarket receipt into structured pantry stock, then tells you which of your recipes you can cook tonight — and exactly which ingredient is missing from the ones you can't.
 
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres_%7C_Realtime_%7C_Edge_Functions-3ECF8E?logo=supabase&logoColor=white)
+![Anthropic](https://img.shields.io/badge/Anthropic-Claude-D97757?logo=anthropic&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-tests-6E9F18?logo=vitest&logoColor=white)
+[![CI](https://github.com/henrygerlach/What-s-in-my-Fridge/actions/workflows/ci.yml/badge.svg)](https://github.com/henrygerlach/What-s-in-my-Fridge/actions/workflows/ci.yml)
+
+> Built with [Claude Code](https://claude.com/claude-code): the app was substantially written by it, directed and reviewed by me. Prompts and workflow aside, the design decisions and trade-offs below are mine.
+
 ![Photographing a receipt and getting structured, unit-aware inventory rows back](docs/screenshots/add-item.gif)
 
 **Live demo:** none, deliberately. The app has no login and one shared household dataset, so it is served over a private [Tailscale](https://tailscale.com/kb/1242/tailscale-serve) tailnet rather than the public internet — see [the auth decision](#4-an-auth-decision-stated-plainly). The GIFs below are real recordings of the running app, and `scripts/seed-demo-data.mjs` populates a full realistic dataset if you want to run it yourself in one command.
@@ -27,7 +38,7 @@ It runs on my household's phones. It is not a tutorial project.
 | **The problem** | Food gets bought twice and thrown away once, because nobody knows what's in the freezer. |
 | **The hard part** | Not the CRUD. It's deciding whether "1 Dose" of tomatoes covers a recipe asking for "400 g" — and whether "Milch" in the fridge satisfies a recipe wanting "Kokosmilch". (It doesn't.) |
 | **The AI part** | 9 Claude-backed Edge Functions doing vision parsing, classification and structured extraction — never a chat box, always a typed result that flows into the database. |
-| **The scale** | ~5,200 lines of TypeScript frontend, ~1,000 lines of Edge Functions, 21 SQL migrations, 27 unit tests on the matching and unit-conversion core. |
+| **The scale** | ~5,200 lines of TypeScript frontend, ~1,000 lines of Edge Functions, 21 SQL migrations, 683 tests across 53 files. |
 | **The proof** | It runs on the household's phones over a private tailnet, syncing live between them — not a screenshot of a prototype. |
 
 ---
@@ -48,14 +59,21 @@ It runs on my household's phones. It is not a tutorial project.
 
 ## Features
 
-- **Four ways to add stock** — type it (category and storage location autosuggested), scan a barcode, photograph the receipt, or photograph the inside of the fridge and let the model enumerate what it sees.
-- **Recipe availability matching** — every recipe shows how many of its ingredients you actually have, quantity-aware, sorted most-cookable first.
-- **Constrained recipe suggestions** — free-text prompt in ("high-protein breakfast"), recipes out that are limited to what is genuinely in stock, savable as real recipes in one tap.
+**Getting stock in**
+- **Four ways to add it** — type it (category and storage location autosuggested), scan a barcode, photograph the receipt, or photograph the inside of the fridge and let the model enumerate what it sees.
+- **Waste and consumption stats** — 30 days of history from an append-only inventory log.
+
+**Recipes**
+- **Availability matching** — every recipe shows how many of its ingredients you actually have, quantity-aware, sorted most-cookable first.
+- **Constrained suggestions** — free-text prompt in ("high-protein breakfast"), recipes out that are limited to what is genuinely in stock, savable as real recipes in one tap.
 - **Live portion scaling** — change the portion count and both the quantities *and* the prose instructions are recalculated.
+
+**Planning and shopping**
 - **Meal plan** — spread recipes across the week and push every missing ingredient for all seven days onto the shopping list in one action.
 - **Shopping list round-trip** — bought items move straight into inventory with storage location and category filled in.
+
+**Household and platform**
 - **Realtime household sync** — consume something on one phone and it disappears on the other, no refresh.
-- **Waste and consumption stats** — 30 days of history from an append-only inventory log.
 - **Offline-capable PWA** — installs to the iOS home screen; app shell precached, data calls deliberately not.
 
 <details>
@@ -91,31 +109,33 @@ A traffic-light readout of how many ingredients you have for each recipe.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    subgraph Client["React PWA · iOS home screen"]
-        UI[Pages and components]
-        SW[Service worker<br/>Workbox precache]
-    end
+```
+                 ┌────────────────────────────┐
+                 │   React PWA (iOS home       │
+                 │   screen)                   │
+                 │                             │
+                 │  Pages and components ◄─────┼── Service worker
+                 └──────┬───────────┬──────────┘   (Workbox precache,
+                         │           │              offline app shell)
+             supabase-js │           │ invoke
+                         │           │
+                         ▼           ▼
+              ┌────────────────┐  ┌──────────────────┐
+              │    Supabase    │  │  Edge Functions   │
+              │                │  │      (Deno)       │
+              │ Postgres       │  └─────────┬─────────┘
+              │ 9 tables · RLS │            │ ANTHROPIC_API_KEY,
+              │      │         │            │ server-side only
+              │      ▼         │            ▼
+              │  Realtime ─────┼──►  ┌──────────────┐
+              │      │         │     │ Anthropic API│
+              │      ▼         │     └──────────────┘
+              │   Storage      │
+              │ (recipe photos)│
+              └────────────────┘
 
-    subgraph Supabase
-        DB[(Postgres<br/>9 tables · RLS)]
-        RT[Realtime<br/>postgres_changes]
-        ST[Storage<br/>recipe photos]
-        EF[Edge Functions<br/>Deno]
-    end
-
-    API[Anthropic API]
-    OFF[Open Food Facts]
-
-    UI <-->|supabase-js| DB
-    DB --> RT
-    RT -->|live updates| UI
-    UI --> ST
-    UI -->|invoke| EF
-    EF -->|ANTHROPIC_API_KEY<br/>server-side only| API
-    UI -->|barcode lookup| OFF
-    SW -.->|offline shell| UI
+  Pages and components also call Open Food Facts directly for barcode lookup.
+  Realtime pushes postgres_changes back to Pages and components for live sync.
 ```
 
 The client never holds a model API key. Every LLM call is a typed request to a task-specific Edge Function, which owns the prompt, the key, and the job of turning a language model's output back into a validated object.
@@ -188,7 +208,7 @@ npm run dev             # http://localhost:5173
 The tests need no configuration at all:
 
 ```bash
-npm test                # 27 tests: name matching, unit conversion, model-output parsing
+npm test                # 683 tests, ~98% statement coverage
 npm run lint            # oxlint
 npm run build           # tsc -b && vite build
 ```
@@ -302,9 +322,23 @@ scripts/
 Known limits, stated up front rather than buried:
 
 - **Single tenant by design.** No login, open RLS policies, one shared dataset. Safe only behind the private tailnet it is deployed on — see [decision 4](#4-an-auth-decision-stated-plainly).
-- **Test coverage is deliberately narrow.** The pure logic that would silently corrupt data if wrong — name matching, unit conversion, model-output parsing — is covered. React components and Edge Function handlers are not.
 - **German-only UI.** No i18n layer; the strings are inline.
 - **LLM calls cost money and can fail.** Every vision parse lands as editable rows a human confirms before anything is written, so a bad parse costs a correction, not corrupted inventory.
+
+---
+
+## Testing
+
+Vitest, 53 test files, 683 tests, run in CI alongside `oxlint` and `tsc -b`.
+
+| | Coverage |
+|---|---|
+| Statements | 98.08% |
+| Branches | 89.65% |
+| Functions | 97.92% |
+| Lines | 99.17% |
+
+Enforced with `vitest` coverage thresholds (90/85/90/90) so the build fails if it slips. Supabase is never mocked as a set of stubbed return values — [`src/test/fakeSupabase.ts`](src/test/fakeSupabase.ts) is a small in-memory database, because the logic worth testing in `src/lib` is the merging, filtering and ordering *around* a query, and stubbing the query away would test nothing. The nine Edge Functions run through [`src/test/denoHarness.ts`](src/test/denoHarness.ts), which loads the real function code and stubs the Anthropic response; nothing in the suite makes a real network call.
 
 ---
 
