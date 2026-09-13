@@ -29,6 +29,7 @@ supabase/.temp
 
 # Claude
 .claude/
+.serena/
 
 # Test coverage reports
 coverage/
